@@ -55,6 +55,7 @@ func TestAnalyse_LatestVersion(t *testing.T) {
 
 	client := &MockGitHubClient{
 		LatestRelease: &latest,
+		AllReleases:   []Release{latest},
 	}
 
 	checker := NewChecker(client, CheckerConfig{
