@@ -2,6 +2,7 @@ package version
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -156,6 +157,33 @@ func TestAnalyze_CriticalVersion(t *testing.T) {
 
 	if analysis.Status() != StatusCritical {
 		t.Errorf("expected status Critical, got %s", analysis.Status())
+	}
+}
+
+func TestAnalyse_NonExistentVersion(t *testing.T) {
+	latest := newTestRelease("2.329.0", 3)
+	older := newTestRelease("2.328.0", 20)
+
+	client := &MockGitHubClient{
+		LatestRelease: &latest,
+		AllReleases:   []Release{latest, older},
+	}
+
+	checker := NewChecker(client, CheckerConfig{
+		CriticalAgeDays: 12,
+		MaxAgeDays:      30,
+	})
+
+	ctx := context.Background()
+	_, err := checker.Analyse(ctx, "2.327.99")
+
+	if err == nil {
+		t.Fatal("expected error for non-existent version, got nil")
+	}
+
+	expectedMsg := "version 2.327.99 does not exist in GitHub releases"
+	if !strings.Contains(err.Error(), expectedMsg) {
+		t.Errorf("expected error containing %q, got %q", expectedMsg, err.Error())
 	}
 }
 

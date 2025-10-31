@@ -28,6 +28,16 @@ func NewChecker(client GitHubClient, config CheckerConfig) *Checker {
 	}
 }
 
+// versionExists checks if a version exists in the releases list
+func (c *Checker) versionExists(releases []Release, version *semver.Version) bool {
+	for _, release := range releases {
+		if release.Version.Equal(version) {
+			return true
+		}
+	}
+	return false
+}
+
 // Analyze performs the version analysis
 func (c *Checker) Analyze(ctx context.Context, comparisonVersionStr string) (*Analysis, error) {
 	// Validate config
@@ -74,6 +84,12 @@ func (c *Checker) Analyze(ctx context.Context, comparisonVersionStr string) (*An
 	allReleases, err := c.client.GetAllReleases(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch all releases: %w", err)
+	}
+
+	// Validate version exists
+	if !c.versionExists(allReleases, comparisonVersion) {
+		return nil, fmt.Errorf("version %s does not exist in GitHub releases (latest: %s)",
+			comparisonVersion, latestRelease.Version)
 	}
 
 	// Find releases newer than comparison version
