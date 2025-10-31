@@ -38,3 +38,4 @@ temp/
 
 # Development worktrees
 .worktrees/
+.claude/settings.local.json
