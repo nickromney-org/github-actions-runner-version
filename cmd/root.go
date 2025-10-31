@@ -147,8 +147,55 @@ func outputCI(analysis *version.Analysis) error {
 	}
 
 	status := analysis.Status()
+	icon := getStatusIcon(status)
 
-	// Print to stdout using GitHub Actions workflow commands
+	// Build status line (same as terminal output but without colours)
+	var statusLine string
+	if analysis.IsLatest {
+		comparisonDate := ""
+		if analysis.ComparisonReleasedAt != nil {
+			comparisonDate = fmt.Sprintf(" (%s)", formatUKDate(*analysis.ComparisonReleasedAt))
+		}
+		statusLine = fmt.Sprintf("Version %s%s is the latest version",
+			analysis.ComparisonVersion,
+			comparisonDate)
+	} else {
+		comparisonDate := ""
+		if analysis.ComparisonReleasedAt != nil {
+			comparisonDate = fmt.Sprintf(" (%s)", formatUKDate(*analysis.ComparisonReleasedAt))
+		}
+
+		expiryInfo := ""
+		if analysis.FirstNewerReleaseDate != nil {
+			expiryDate := analysis.FirstNewerReleaseDate.AddDate(0, 0, 30)
+
+			if analysis.IsExpired {
+				expiryInfo = fmt.Sprintf(" EXPIRED %s", formatUKDate(expiryDate))
+			} else if analysis.IsCritical {
+				daysLeft := 30 - analysis.DaysSinceUpdate
+				expiryInfo = fmt.Sprintf(" EXPIRES %s (%d days)", formatUKDate(expiryDate), daysLeft)
+			} else {
+				expiryInfo = fmt.Sprintf(" expires %s", formatUKDate(expiryDate))
+			}
+		}
+
+		latestDate := ""
+		for _, r := range analysis.RecentReleases {
+			if r.IsLatest {
+				latestDate = fmt.Sprintf(" (Released %s)", formatUKDate(r.ReleasedAt))
+				break
+			}
+		}
+
+		statusLine = fmt.Sprintf("Version %s%s%s: Update to v%s%s",
+			analysis.ComparisonVersion,
+			comparisonDate,
+			expiryInfo,
+			analysis.LatestVersion,
+			latestDate)
+	}
+
+	// Print GitHub Actions workflow commands
 	fmt.Println()
 	fmt.Println("::group::📊 Runner Version Check")
 	fmt.Printf("Latest version: v%s\n", analysis.LatestVersion)
@@ -160,52 +207,51 @@ func outputCI(analysis *version.Analysis) error {
 	// Use appropriate workflow command based on status
 	switch status {
 	case version.StatusExpired:
-		fmt.Printf("::error title=Runner Version Expired::🚨 Version %s EXPIRED! (%d releases behind AND %d days overdue)\n",
-			analysis.ComparisonVersion, analysis.ReleasesBehind, analysis.DaysSinceUpdate-analysis.MaxAgeDays)
-		if analysis.FirstNewerVersion != nil {
-			fmt.Printf("::error::Update required: v%s was released %d days ago\n",
-				analysis.FirstNewerVersion, analysis.DaysSinceUpdate)
-		}
-		fmt.Printf("::error::Latest version: v%s\n", analysis.LatestVersion)
-
+		fmt.Printf("::error title=Runner Version Expired::%s %s\n", icon, statusLine)
 	case version.StatusCritical:
-		daysLeft := analysis.MaxAgeDays - analysis.DaysSinceUpdate
-		fmt.Printf("::warning title=Runner Version Critical::⚠️  Version %s expires in %d days! (%d releases behind)\n",
-			analysis.ComparisonVersion, daysLeft, analysis.ReleasesBehind)
-		if analysis.FirstNewerVersion != nil {
-			fmt.Printf("::warning::Update available: v%s (released %d days ago)\n",
-				analysis.FirstNewerVersion, analysis.DaysSinceUpdate)
-		}
-		fmt.Printf("::warning::Latest version: v%s\n", analysis.LatestVersion)
-
+		fmt.Printf("::warning title=Runner Version Critical::%s %s\n", icon, statusLine)
 	case version.StatusWarning:
-		fmt.Printf("::notice title=Runner Version Behind::ℹ️  Version %s is %d releases behind\n",
-			analysis.ComparisonVersion, analysis.ReleasesBehind)
-		fmt.Printf("::notice::Latest version: v%s\n", analysis.LatestVersion)
-
+		fmt.Printf("::notice title=Runner Version Behind::%s %s\n", icon, statusLine)
 	case version.StatusCurrent:
-		fmt.Printf("::notice title=Runner Version Current::✅ Version %s is up to date\n",
-			analysis.ComparisonVersion)
+		fmt.Printf("::notice title=Runner Version Current::%s %s\n", icon, statusLine)
 	}
 
-	// List available updates
-	if len(analysis.NewerReleases) > 0 {
+	// Print expiry table
+	if len(analysis.RecentReleases) > 0 {
 		fmt.Println()
-		fmt.Println("::group::📋 Available Updates")
-		for i, release := range analysis.NewerReleases {
-			releasedDaysAgo := int(time.Since(release.PublishedAt).Hours() / 24)
-			label := ""
-			if i == 0 {
-				label = " [Latest]"
-			} else if analysis.FirstNewerVersion != nil && release.Version.Equal(analysis.FirstNewerVersion) {
-				label = " [First newer release]"
+		fmt.Println("::group::📅 Release Expiry Timeline")
+		fmt.Printf("%-10s %-14s %-14s %s\n", "Version", "Release Date", "Expiry Date", "Status")
+
+		for _, release := range analysis.RecentReleases {
+			versionStr := release.Version.String()
+			releasedStr := formatUKDate(release.ReleasedAt)
+
+			var expiresStr string
+			var statusStr string
+
+			if release.IsLatest {
+				expiresStr = "-"
+				daysAgo := int(time.Since(release.ReleasedAt).Hours() / 24)
+				statusStr = fmt.Sprintf("Latest (%s)", formatDaysAgo(daysAgo))
+			} else if release.ExpiresAt != nil {
+				expiresStr = formatUKDate(*release.ExpiresAt)
+
+				if release.IsExpired {
+					daysExpired := -release.DaysUntilExpiry
+					statusStr = fmt.Sprintf("Expired %s", formatDaysAgo(daysExpired))
+				} else {
+					statusStr = fmt.Sprintf("Valid (%s left)", formatDaysInFuture(release.DaysUntilExpiry))
+				}
 			}
-			fmt.Printf("  • v%s (%s, %d days ago)%s\n",
-				release.Version,
-				release.PublishedAt.Format("2006-01-02"),
-				releasedDaysAgo,
-				label)
+
+			arrow := ""
+			if analysis.ComparisonVersion != nil && release.Version.Equal(analysis.ComparisonVersion) {
+				arrow = "  [Your version]"
+			}
+
+			fmt.Printf("  %-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
 		}
+
 		fmt.Println("::endgroup::")
 	}
 
@@ -273,7 +319,7 @@ func writeGitHubSummary(summaryFile string, analysis *version.Analysis) error {
 			fmt.Fprintf(f, "- [v%s](%s) - Released %s (%d days ago)\n",
 				release.Version,
 				release.URL,
-				release.PublishedAt.Format("Jan 2, 2006"),
+				formatUKDate(release.PublishedAt),
 				releasedDaysAgo)
 		}
 	}
