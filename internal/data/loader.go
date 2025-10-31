@@ -6,11 +6,17 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/nickromney-org/github-actions-runner-version/internal/version"
 )
 
 //go:embed releases.json
 var releasesJSON []byte
+
+// Release represents a GitHub release (local copy to avoid import cycles)
+type Release struct {
+	Version     *semver.Version
+	PublishedAt time.Time
+	URL         string
+}
 
 type CachedReleases struct {
 	GeneratedAt time.Time `json:"generated_at"`
@@ -22,20 +28,20 @@ type CachedReleases struct {
 }
 
 // LoadEmbeddedReleases loads releases from embedded JSON
-func LoadEmbeddedReleases() ([]version.Release, error) {
+func LoadEmbeddedReleases() ([]Release, error) {
 	var cached CachedReleases
 	if err := json.Unmarshal(releasesJSON, &cached); err != nil {
 		return nil, err
 	}
 
-	releases := make([]version.Release, 0, len(cached.Releases))
+	releases := make([]Release, 0, len(cached.Releases))
 	for _, r := range cached.Releases {
 		ver, err := semver.NewVersion(r.Version)
 		if err != nil {
 			// Skip invalid versions
 			continue
 		}
-		releases = append(releases, version.Release{
+		releases = append(releases, Release{
 			Version:     ver,
 			PublishedAt: r.PublishedAt,
 			URL:         r.URL,
