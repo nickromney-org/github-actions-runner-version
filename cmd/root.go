@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	colour "github.com/fatih/color"
 	"github.com/nickromney-org/github-actions-runner-version/internal/github"
 	"github.com/nickromney-org/github-actions-runner-version/internal/version"
@@ -107,7 +108,7 @@ func run(cmd *cobra.Command, args []string) error {
 					tempChecker := version.NewChecker(client, version.CheckerConfig{})
 					tempAnalysis.RecentReleases = tempChecker.CalculateRecentReleases(allReleases, latestRelease.Version, latestRelease.Version)
 
-					printExpiryTable(tempAnalysis)
+					printExpiryTable(tempAnalysis, comparisonVersion)
 				}
 			}
 
@@ -369,7 +370,7 @@ func outputTerminal(analysis *version.Analysis) error {
 
 	// Print expiry table unless quiet mode
 	if !quiet {
-		printExpiryTable(analysis)
+		printExpiryTable(analysis, "")
 	}
 
 	// Print verbose details if requested
@@ -444,7 +445,7 @@ func printStatus(analysis *version.Analysis) {
 	colourFunc.Println(statusLine)
 }
 
-func printExpiryTable(analysis *version.Analysis) {
+func printExpiryTable(analysis *version.Analysis, phantomVersionStr string) {
 	if len(analysis.RecentReleases) == 0 {
 		return
 	}
@@ -454,7 +455,24 @@ func printExpiryTable(analysis *version.Analysis) {
 	cyan.Println("─────────────────────────────────────────────────────")
 	fmt.Printf("%-10s %-14s %-14s %s\n", "Version", "Release Date", "Expiry Date", "Status")
 
-	for _, release := range analysis.RecentReleases {
+	// Parse phantom version if provided
+	var phantomVersion *semver.Version
+	if phantomVersionStr != "" {
+		if v, err := semver.NewVersion(phantomVersionStr); err == nil {
+			phantomVersion = v
+		}
+	}
+
+	phantomPrinted := false
+	for i, release := range analysis.RecentReleases {
+		// Check if we should print phantom version before this release
+		if phantomVersion != nil && !phantomPrinted && phantomVersion.LessThan(release.Version) {
+			// Print phantom version row
+			bold := colour.New(colour.Bold)
+			bold.Printf("%-10s %-14s %-14s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
+			phantomPrinted = true
+		}
+
 		versionStr := release.Version.String()
 		releasedStr := formatUKDate(release.ReleasedAt)
 
@@ -486,6 +504,14 @@ func printExpiryTable(analysis *version.Analysis) {
 			bold.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
 		} else {
 			fmt.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+		}
+
+		// Check if phantom should be printed after this (if it's the last release and phantom is greater)
+		if phantomVersion != nil && !phantomPrinted && i == len(analysis.RecentReleases)-1 {
+			// Print phantom version row
+			bold := colour.New(colour.Bold)
+			bold.Printf("%-10s %-14s %-14s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
+			phantomPrinted = true
 		}
 	}
 
