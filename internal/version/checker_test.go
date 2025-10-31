@@ -189,6 +189,48 @@ func TestAnalyse_NonExistentVersion(t *testing.T) {
 	}
 }
 
+func TestCalculateRecentReleases_Last90Days(t *testing.T) {
+	// Create releases spanning 120 days
+	releases := []Release{
+		newTestRelease("2.329.0", 5),   // 5 days ago
+		newTestRelease("2.328.0", 25),  // 25 days ago
+		newTestRelease("2.327.1", 50),  // 50 days ago
+		newTestRelease("2.327.0", 80),  // 80 days ago
+		newTestRelease("2.326.0", 100), // 100 days ago - outside window
+	}
+
+	comparisonVersion := semver.MustParse("2.327.0")
+	latestVersion := semver.MustParse("2.329.0")
+
+	checker := &Checker{}
+	recent := checker.calculateRecentReleases(releases, comparisonVersion, latestVersion)
+
+	// Should include releases from last 90 days: 2.329.0, 2.328.0, 2.327.1, 2.327.0
+	if len(recent) != 4 {
+		t.Errorf("expected 4 releases, got %d", len(recent))
+	}
+}
+
+func TestCalculateRecentReleases_Minimum4(t *testing.T) {
+	// Only 2 releases in last 90 days, but should return minimum 4
+	releases := []Release{
+		newTestRelease("2.329.0", 5),    // 5 days ago
+		newTestRelease("2.328.0", 25),   // 25 days ago
+		newTestRelease("2.327.0", 100),  // 100 days ago
+		newTestRelease("2.326.0", 120),  // 120 days ago
+	}
+
+	comparisonVersion := semver.MustParse("2.327.0")
+	latestVersion := semver.MustParse("2.329.0")
+
+	checker := &Checker{}
+	recent := checker.calculateRecentReleases(releases, comparisonVersion, latestVersion)
+
+	if len(recent) != 4 {
+		t.Errorf("expected minimum 4 releases, got %d", len(recent))
+	}
+}
+
 func TestFindNewerReleases(t *testing.T) {
 	releases := []Release{
 		newTestRelease("2.329.0", 3),

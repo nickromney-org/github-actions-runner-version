@@ -124,6 +124,75 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 	return analysis, nil
 }
 
+// calculateRecentReleases returns releases for the expiry timeline table
+// Shows all releases from last 90 days, or minimum 4 releases
+func (c *Checker) calculateRecentReleases(allReleases []Release, comparisonVersion *semver.Version, latestVersion *semver.Version) []ReleaseExpiry {
+	now := time.Now()
+	ninetyDaysAgo := now.AddDate(0, 0, -90)
+
+	var recentReleases []Release
+
+	// Collect releases from last 90 days
+	for _, release := range allReleases {
+		if release.PublishedAt.After(ninetyDaysAgo) {
+			recentReleases = append(recentReleases, release)
+		}
+	}
+
+	// Ensure minimum 4 releases
+	if len(recentReleases) < 4 && len(allReleases) >= 4 {
+		// Sort all releases by date (newest first)
+		sorted := make([]Release, len(allReleases))
+		copy(sorted, allReleases)
+		for i := 0; i < len(sorted)-1; i++ {
+			for j := i + 1; j < len(sorted); j++ {
+				if sorted[i].PublishedAt.Before(sorted[j].PublishedAt) {
+					sorted[i], sorted[j] = sorted[j], sorted[i]
+				}
+			}
+		}
+		// Take first 4
+		recentReleases = sorted[:4]
+	}
+
+	// Sort oldest first (for display)
+	for i := 0; i < len(recentReleases)-1; i++ {
+		for j := i + 1; j < len(recentReleases); j++ {
+			if recentReleases[i].PublishedAt.After(recentReleases[j].PublishedAt) {
+				recentReleases[i], recentReleases[j] = recentReleases[j], recentReleases[i]
+			}
+		}
+	}
+
+	// Convert to ReleaseExpiry with expiry calculations
+	var result []ReleaseExpiry
+	for i, release := range recentReleases {
+		expiry := ReleaseExpiry{
+			Version:    release.Version,
+			ReleasedAt: release.PublishedAt,
+			IsLatest:   release.Version.Equal(latestVersion),
+		}
+
+		// Calculate expiry (30 days after next release)
+		if i < len(recentReleases)-1 {
+			nextRelease := recentReleases[i+1]
+			expiryDate := nextRelease.PublishedAt.AddDate(0, 0, 30)
+			expiry.ExpiresAt = &expiryDate
+			expiry.DaysUntilExpiry = daysBetween(now, expiryDate)
+			expiry.IsExpired = now.After(expiryDate)
+		} else {
+			// Latest version - no expiry
+			expiry.ExpiresAt = nil
+			expiry.DaysUntilExpiry = 0
+			expiry.IsExpired = false
+		}
+
+		result = append(result, expiry)
+	}
+
+	return result
+}
+
 // findNewerReleases returns releases newer than the comparison version, sorted oldest-first
 func (c *Checker) findNewerReleases(releases []Release, comparisonVersion *semver.Version) []Release {
 	var newer []Release
