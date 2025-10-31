@@ -102,12 +102,24 @@ echo "Latest runner version is: $LATEST_VERSION"
 $ runner-version-check -c 2.327.1
 2.329.0
 
-🚨 Version 2.327.1 EXPIRED: 2 releases behind AND 35 days overdue
+🚨 Version 2.327.1 (25 Jul 2025) EXPIRED 12 Sep 2025: Update to v2.329.0 (Released 14 Oct 2025)
 
-   📦 Update available: v2.328.0
-      Released: Aug 13, 2024 (65 days ago)
-   🎯 Latest version: v2.329.0
-   ⚠️  2 releases behind
+📅 Release Expiry Timeline
+─────────────────────────────────────────────────────
+Version    Release Date   Expiry Date    Status
+2.327.0    22 Jul 2025    24 Aug 2025    ❌ Expired 67 days ago
+2.327.1    25 Jul 2025    12 Sep 2025    ❌ Expired 48 days ago  ← Your version
+2.328.0    13 Aug 2025    13 Nov 2025    ✅ Valid (13 days left)
+2.329.0    14 Oct 2025    -              ✅ Latest (16 days ago)
+```
+
+### Example 2a: Quiet Output (suppress expiry table)
+
+```bash
+$ runner-version-check -c 2.327.1 -q
+2.329.0
+
+🚨 Version 2.327.1 (25 Jul 2025) EXPIRED 12 Sep 2025: Update to v2.329.0 (Released 14 Oct 2025)
 ```
 
 ### Example 3: Verbose Output
@@ -466,6 +478,33 @@ This tool is written in Go for several compelling reasons:
 | Bash + jq         | ~5ms         | N/A         | 2MB          |
 | TypeScript (Node) | ~500ms       | N/A         | 40MB         |
 | Python            | ~200ms       | N/A         | 20MB         |
+
+## 🛠️ Development
+
+This project uses British English spelling throughout:
+- `Analyse` (not Analyze)
+- `colour` (not color)
+
+Linting enforces British spelling via `golangci-lint` with UK locale.
+
+### Commands
+
+```bash
+# Build
+make build
+
+# Run tests
+make test
+
+# Format code
+make fmt
+
+# Run linter
+make lint
+
+# Run with local build
+./bin/github-actions-runner-version -c 2.327.1
+```
 
 ## 🤝 Contributing
 

@@ -32,7 +32,7 @@ make test
 make test-coverage
 
 # Run specific test
-go test -v ./internal/version -run TestAnalyze_ExpiredVersion
+go test -v ./internal/version -run TestAnalyse_ExpiredVersion
 ```
 
 ### Other Development Commands
@@ -56,7 +56,7 @@ make run
 
 1. **CLI Layer** (`cmd/root.go`)
    - Built with Cobra framework
-   - Handles flags, output formatting (terminal/JSON/CI), and colorized display
+   - Handles flags, output formatting (terminal/JSON/CI), and colourised display (British English)
    - Three output modes: terminal (human-readable), JSON (automation), CI (GitHub Actions annotations + markdown summaries)
 
 2. **Core Logic Layer** (`internal/version/`)
@@ -114,9 +114,18 @@ Tests use `MockGitHubClient` to simulate various scenarios (current, warning, cr
 - `spf13/cobra`: CLI framework
 - `Masterminds/semver/v3`: Semantic version parsing and comparison
 - `google/go-github/v57`: GitHub API client
-- `fatih/color`: Terminal colorization
+- `fatih/color`: Terminal colourisation (imported as `colour`)
 - `golang.org/x/oauth2`: GitHub authentication
 
 ## GitHub API Authentication
 
 Tool accepts token via `-t` flag or `GITHUB_TOKEN` env var to avoid rate limiting (60 req/hour unauthenticated, 5000 req/hour authenticated).
+
+## British English
+
+This project uses British English spelling throughout the codebase:
+- Method names: `Analyse()` (not `Analyze()`)
+- Variable names: `colour` (not `color`)
+- Comments and documentation use British spelling
+
+The `golangci-lint` configuration enforces British spelling via the `misspell` linter with `locale: UK`.
