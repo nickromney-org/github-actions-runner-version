@@ -88,6 +88,21 @@ func run(cmd *cobra.Command, args []string) error {
 	// Run analysis
 	analysis, err := checker.Analyse(cmd.Context(), comparisonVersion)
 	if err != nil {
+		// If invalid semantic version format, show helpful context
+		if strings.Contains(err.Error(), "invalid comparison version") {
+			red.Printf("\n❌ Error: %v\n\n", err)
+
+			// Fetch latest release to show helpful info
+			latestRelease, fetchErr := client.GetLatestRelease(cmd.Context())
+			if fetchErr == nil {
+				yellow.Println("ℹ️  Semantic Version format: MAJOR.MINOR.PATCH")
+				yellow.Printf("   Example: 2.326.0\n\n")
+				yellow.Printf("💡 Most recent version is: v%s (Released %s)\n", latestRelease.Version, formatUKDate(latestRelease.PublishedAt))
+			}
+
+			os.Exit(1)
+		}
+
 		// If version doesn't exist, show helpful context instead of just erroring
 		if strings.Contains(err.Error(), "does not exist in GitHub releases") {
 			red.Printf("\n❌ Error: %v\n\n", err)
