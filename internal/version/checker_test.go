@@ -239,7 +239,7 @@ func TestCalculateRecentReleases_Last90Days(t *testing.T) {
 	latestVersion := semver.MustParse("2.329.0")
 
 	checker := &Checker{}
-	recent := checker.calculateRecentReleases(releases, comparisonVersion, latestVersion)
+	recent := checker.CalculateRecentReleases(releases, comparisonVersion, latestVersion)
 
 	// Should include releases from last 90 days: 2.329.0, 2.328.0, 2.327.1, 2.327.0
 	if len(recent) != 4 {
@@ -260,7 +260,7 @@ func TestCalculateRecentReleases_Minimum4(t *testing.T) {
 	latestVersion := semver.MustParse("2.329.0")
 
 	checker := &Checker{}
-	recent := checker.calculateRecentReleases(releases, comparisonVersion, latestVersion)
+	recent := checker.CalculateRecentReleases(releases, comparisonVersion, latestVersion)
 
 	if len(recent) != 4 {
 		t.Errorf("expected minimum 4 releases, got %d", len(recent))

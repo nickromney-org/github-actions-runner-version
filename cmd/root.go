@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	colour "github.com/fatih/color"
@@ -66,6 +67,9 @@ func Execute() error {
 }
 
 func run(cmd *cobra.Command, args []string) error {
+	// Disable automatic usage printing on error
+	cmd.SilenceUsage = true
+
 	// Validate inputs
 	if criticalAgeDays >= maxAgeDays {
 		return fmt.Errorf("critical-days (%d) must be less than max-days (%d)", criticalAgeDays, maxAgeDays)
@@ -83,6 +87,32 @@ func run(cmd *cobra.Command, args []string) error {
 	// Run analysis
 	analysis, err := checker.Analyse(cmd.Context(), comparisonVersion)
 	if err != nil {
+		// If version doesn't exist, show helpful context instead of just erroring
+		if strings.Contains(err.Error(), "does not exist in GitHub releases") {
+			red.Printf("\n❌ Error: %v\n\n", err)
+
+			// Fetch latest release to show helpful info
+			latestRelease, fetchErr := client.GetLatestRelease(cmd.Context())
+			if fetchErr == nil {
+				yellow.Printf("💡 Use v%s (Released %s)\n", latestRelease.Version, formatUKDate(latestRelease.PublishedAt))
+
+				// Show recent releases table if we can fetch them
+				allReleases, fetchErr := client.GetAllReleases(cmd.Context())
+				if fetchErr == nil && len(allReleases) > 0 {
+					// Create a minimal analysis just for displaying the table
+					tempAnalysis := &version.Analysis{
+						LatestVersion: latestRelease.Version,
+					}
+					// Calculate recent releases for display
+					tempChecker := version.NewChecker(client, version.CheckerConfig{})
+					tempAnalysis.RecentReleases = tempChecker.CalculateRecentReleases(allReleases, latestRelease.Version, latestRelease.Version)
+
+					printExpiryTable(tempAnalysis)
+				}
+			}
+
+			return fmt.Errorf("") // Return empty error to avoid double-printing
+		}
 		return fmt.Errorf("analysis failed: %w", err)
 	}
 

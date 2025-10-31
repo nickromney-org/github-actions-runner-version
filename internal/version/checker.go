@@ -107,7 +107,7 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 	}
 
 	// Calculate recent releases for timeline table
-	analysis.RecentReleases = c.calculateRecentReleases(allReleases, comparisonVersion, latestRelease.Version)
+	analysis.RecentReleases = c.CalculateRecentReleases(allReleases, comparisonVersion, latestRelease.Version)
 
 	// Find comparison version release date
 	for _, release := range allReleases {
@@ -135,9 +135,9 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 	return analysis, nil
 }
 
-// calculateRecentReleases returns releases for the expiry timeline table
+// CalculateRecentReleases returns releases for the expiry timeline table
 // Shows all releases from last 90 days, or minimum 4 releases
-func (c *Checker) calculateRecentReleases(allReleases []Release, comparisonVersion *semver.Version, latestVersion *semver.Version) []ReleaseExpiry {
+func (c *Checker) CalculateRecentReleases(allReleases []Release, comparisonVersion *semver.Version, latestVersion *semver.Version) []ReleaseExpiry {
 	now := time.Now()
 	ninetyDaysAgo := now.AddDate(0, 0, -90)
 
