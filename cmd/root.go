@@ -79,7 +79,7 @@ func run(cmd *cobra.Command, args []string) error {
 	})
 
 	// Run analysis
-	analysis, err := checker.Analyze(cmd.Context(), comparisonVersion)
+	analysis, err := checker.Analyse(cmd.Context(), comparisonVersion)
 	if err != nil {
 		return fmt.Errorf("analysis failed: %w", err)
 	}

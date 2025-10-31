@@ -39,7 +39,7 @@ func newTestRelease(version string, daysAgo int) Release {
 	}
 }
 
-func TestAnalyze_LatestVersion(t *testing.T) {
+func TestAnalyse_LatestVersion(t *testing.T) {
 	latest := newTestRelease("2.329.0", 3)
 
 	client := &MockGitHubClient{
@@ -51,7 +51,7 @@ func TestAnalyze_LatestVersion(t *testing.T) {
 		MaxAgeDays:      30,
 	})
 
-	analysis, err := checker.Analyze(context.Background(), "")
+	analysis, err := checker.Analyse(context.Background(), "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -65,7 +65,7 @@ func TestAnalyze_LatestVersion(t *testing.T) {
 	}
 }
 
-func TestAnalyze_CurrentVersion(t *testing.T) {
+func TestAnalyse_CurrentVersion(t *testing.T) {
 	latest := newTestRelease("2.329.0", 3)
 
 	client := &MockGitHubClient{
@@ -78,7 +78,7 @@ func TestAnalyze_CurrentVersion(t *testing.T) {
 		MaxAgeDays:      30,
 	})
 
-	analysis, err := checker.Analyze(context.Background(), "2.329.0")
+	analysis, err := checker.Analyse(context.Background(), "2.329.0")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -92,13 +92,14 @@ func TestAnalyze_CurrentVersion(t *testing.T) {
 	}
 }
 
-func TestAnalyze_ExpiredVersion(t *testing.T) {
+func TestAnalyse_ExpiredVersion(t *testing.T) {
 	latest := newTestRelease("2.329.0", 3)
 	newer := newTestRelease("2.328.0", 65) // Released 65 days ago
+	comparison := newTestRelease("2.327.1", 100)
 
 	client := &MockGitHubClient{
 		LatestRelease: &latest,
-		AllReleases:   []Release{latest, newer},
+		AllReleases:   []Release{latest, newer, comparison},
 	}
 
 	checker := NewChecker(client, CheckerConfig{
@@ -106,7 +107,7 @@ func TestAnalyze_ExpiredVersion(t *testing.T) {
 		MaxAgeDays:      30,
 	})
 
-	analysis, err := checker.Analyze(context.Background(), "2.327.1")
+	analysis, err := checker.Analyse(context.Background(), "2.327.1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -128,13 +129,14 @@ func TestAnalyze_ExpiredVersion(t *testing.T) {
 	}
 }
 
-func TestAnalyze_CriticalVersion(t *testing.T) {
+func TestAnalyse_CriticalVersion(t *testing.T) {
 	latest := newTestRelease("2.329.0", 3)
 	newer := newTestRelease("2.328.0", 20) // Released 20 days ago
+	comparison := newTestRelease("2.327.1", 50)
 
 	client := &MockGitHubClient{
 		LatestRelease: &latest,
-		AllReleases:   []Release{latest, newer},
+		AllReleases:   []Release{latest, newer, comparison},
 	}
 
 	checker := NewChecker(client, CheckerConfig{
@@ -142,7 +144,7 @@ func TestAnalyze_CriticalVersion(t *testing.T) {
 		MaxAgeDays:      30,
 	})
 
-	analysis, err := checker.Analyze(context.Background(), "2.327.1")
+	analysis, err := checker.Analyse(context.Background(), "2.327.1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

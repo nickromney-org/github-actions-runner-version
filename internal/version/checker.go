@@ -38,8 +38,8 @@ func (c *Checker) versionExists(releases []Release, version *semver.Version) boo
 	return false
 }
 
-// Analyze performs the version analysis
-func (c *Checker) Analyze(ctx context.Context, comparisonVersionStr string) (*Analysis, error) {
+// Analyse performs the version analysis
+func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*Analysis, error) {
 	// Validate config
 	if err := c.config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
