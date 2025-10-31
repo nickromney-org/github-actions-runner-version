@@ -366,7 +366,7 @@ func printExpiryTable(analysis *version.Analysis) {
 	fmt.Println()
 	cyan.Println("📅 Release Expiry Timeline")
 	cyan.Println("─────────────────────────────────────────────────────")
-	fmt.Printf("%-10s %-14s %-14s %s\n", "Version", "Released", "Expires", "Status")
+	fmt.Printf("%-10s %-14s %-14s %s\n", "Version", "Release Date", "Expiry Date", "Status")
 
 	for _, release := range analysis.RecentReleases {
 		versionStr := release.Version.String()
