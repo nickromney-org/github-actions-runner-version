@@ -111,7 +111,7 @@ func run(cmd *cobra.Command, args []string) error {
 				}
 			}
 
-			return fmt.Errorf("") // Return empty error to avoid double-printing
+			os.Exit(1) // Exit with error code after showing helpful context
 		}
 		return fmt.Errorf("analysis failed: %w", err)
 	}
@@ -252,6 +252,11 @@ func outputCI(analysis *version.Analysis) error {
 			fmt.Printf("  %-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
 		}
 
+		// Add timestamp
+		now := time.Now().UTC()
+		timestamp := now.Format("2 Jan 2006 15:04:05 MST")
+		fmt.Printf("\n  Checked at: %s\n", timestamp)
+
 		fmt.Println("::endgroup::")
 	}
 
@@ -323,6 +328,11 @@ func writeGitHubSummary(summaryFile string, analysis *version.Analysis) error {
 				releasedDaysAgo)
 		}
 	}
+
+	// Add timestamp
+	now := time.Now().UTC()
+	timestamp := now.Format("2 Jan 2006 15:04:05 MST")
+	fmt.Fprintf(f, "\n*Checked at: %s*\n", timestamp)
 
 	fmt.Fprintf(f, "\n---\n\n")
 
@@ -478,6 +488,12 @@ func printExpiryTable(analysis *version.Analysis) {
 			fmt.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
 		}
 	}
+
+	// Add timestamp footer
+	now := time.Now().UTC()
+	timestamp := now.Format("2 Jan 2006 15:04:05 MST")
+	grey := colour.New(colour.FgHiBlack)
+	grey.Printf("\nChecked at: %s\n", timestamp)
 }
 
 func printDetails(analysis *version.Analysis) {
