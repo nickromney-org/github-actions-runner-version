@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/fatih/color"
+	colour "github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/nickromney-org/github-actions-runner-version/internal/github"
 	"github.com/nickromney-org/github-actions-runner-version/internal/version"
@@ -18,14 +18,15 @@ var (
 	verbose           bool
 	jsonOutput        bool
 	ciOutput          bool
+	quiet             bool
 	githubToken       string
 
-	// Colors for output
-	green   = color.New(color.FgGreen, color.Bold)
-	yellow  = color.New(color.FgYellow, color.Bold)
-	red     = color.New(color.FgRed, color.Bold)
-	cyan    = color.New(color.FgCyan)
-	gray    = color.New(color.Faint)
+	// Colours for output
+	green  = colour.New(colour.FgGreen, colour.Bold)
+	yellow = colour.New(colour.FgYellow, colour.Bold)
+	red    = colour.New(colour.FgRed, colour.Bold)
+	cyan   = colour.New(colour.FgCyan)
+	gray   = colour.New(colour.Faint)
 )
 
 var rootCmd = &cobra.Command{
@@ -56,6 +57,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	rootCmd.Flags().BoolVar(&jsonOutput, "json", false, "output as JSON")
 	rootCmd.Flags().BoolVar(&ciOutput, "ci", false, "format output for CI/GitHub Actions")
+	rootCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "quiet output (suppress expiry table)")
 	rootCmd.Flags().StringVarP(&githubToken, "token", "t", os.Getenv("GITHUB_TOKEN"), "GitHub token (or GITHUB_TOKEN env var)")
 }
 
@@ -290,10 +292,10 @@ func outputTerminal(analysis *version.Analysis) error {
 func printStatus(analysis *version.Analysis) {
 	status := analysis.Status()
 	icon := getStatusIcon(status)
-	colorFunc := getStatusColor(status)
+	colourFunc := getStatusColour(status)
 
 	// Main status line
-	colorFunc.Printf("%s %s\n", icon, analysis.Message)
+	colourFunc.Printf("%s %s\n", icon, analysis.Message)
 
 	// Additional context
 	if status == version.StatusExpired || status == version.StatusCritical {
@@ -367,7 +369,7 @@ func getStatusIcon(status version.Status) string {
 	}
 }
 
-func getStatusColor(status version.Status) *color.Color {
+func getStatusColour(status version.Status) *colour.Color {
 	switch status {
 	case version.StatusCurrent:
 		return green
