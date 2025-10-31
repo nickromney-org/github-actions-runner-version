@@ -390,13 +390,17 @@ func printExpiryTable(analysis *version.Analysis) {
 			}
 		}
 
-		// Mark user's version
+		// Mark user's version with bold and arrow
 		arrow := ""
-		if analysis.ComparisonVersion != nil && release.Version.Equal(analysis.ComparisonVersion) {
+		isUserVersion := analysis.ComparisonVersion != nil && release.Version.Equal(analysis.ComparisonVersion)
+		if isUserVersion {
 			arrow = "  ← Your version"
+			// Format the whole line in bold
+			bold := colour.New(colour.Bold)
+			bold.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+		} else {
+			fmt.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
 		}
-
-		fmt.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
 	}
 }
 
