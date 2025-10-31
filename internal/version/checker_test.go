@@ -30,6 +30,17 @@ func (m *MockGitHubClient) GetAllReleases(ctx context.Context) ([]Release, error
 	return m.AllReleases, nil
 }
 
+// GetRecentReleases returns the first N mocked releases
+func (m *MockGitHubClient) GetRecentReleases(ctx context.Context, count int) ([]Release, error) {
+	if m.Error != nil {
+		return nil, m.Error
+	}
+	if len(m.AllReleases) <= count {
+		return m.AllReleases, nil
+	}
+	return m.AllReleases[:count], nil
+}
+
 func newTestRelease(version string, daysAgo int) Release {
 	v := semver.MustParse(version)
 	return Release{
@@ -44,6 +55,7 @@ func TestAnalyse_LatestVersion(t *testing.T) {
 
 	client := &MockGitHubClient{
 		LatestRelease: &latest,
+		AllReleases:   []Release{latest},
 	}
 
 	checker := NewChecker(client, CheckerConfig{
@@ -333,5 +345,91 @@ func TestCheckerConfig_Validate(t *testing.T) {
 				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestChecker_IsEmbeddedCurrent(t *testing.T) {
+	tests := []struct {
+		name     string
+		embedded []Release
+		recent   []Release
+		want     bool
+	}{
+		{
+			name: "embedded is current (latest in top 5)",
+			embedded: []Release{
+				newTestRelease("2.329.0", 5),
+				newTestRelease("2.328.0", 20),
+			},
+			recent: []Release{
+				newTestRelease("2.329.0", 5),
+				newTestRelease("2.328.0", 20),
+			},
+			want: true,
+		},
+		{
+			name: "embedded is stale (latest not in top 5)",
+			embedded: []Release{
+				newTestRelease("2.320.0", 100),
+				newTestRelease("2.319.0", 110),
+			},
+			recent: []Release{
+				newTestRelease("2.329.0", 5),
+				newTestRelease("2.328.0", 20),
+			},
+			want: false,
+		},
+		{
+			name:     "empty embedded",
+			embedded: []Release{},
+			recent: []Release{
+				newTestRelease("2.329.0", 5),
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checker := &Checker{}
+			got := checker.isEmbeddedCurrent(tt.embedded, tt.recent)
+			if got != tt.want {
+				t.Errorf("isEmbeddedCurrent() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestChecker_MergeReleases(t *testing.T) {
+	embedded := []Release{
+		newTestRelease("2.327.0", 50),
+		newTestRelease("2.326.0", 60),
+	}
+
+	recent := []Release{
+		newTestRelease("2.329.0", 5),
+		newTestRelease("2.328.0", 20),
+		newTestRelease("2.327.0", 50), // Duplicate
+	}
+
+	checker := &Checker{}
+	merged := checker.mergeReleases(embedded, recent)
+
+	// Should have 4 unique releases (deduplicated 2.327.0)
+	if len(merged) != 4 {
+		t.Errorf("expected 4 releases, got %d", len(merged))
+	}
+
+	// Check all versions present
+	versions := make(map[string]bool)
+	for _, r := range merged {
+		versions[r.Version.String()] = true
+	}
+
+	expected := []string{"2.329.0", "2.328.0", "2.327.0", "2.326.0"}
+	for _, v := range expected {
+		if !versions[v] {
+			t.Errorf("missing version %s in merged releases", v)
+		}
 	}
 }

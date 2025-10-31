@@ -15,6 +15,7 @@ A blazingly fast, type-safe CLI tool to check if your GitHub Actions self-hosted
 - 📊 **Multiple Formats** - Terminal UI or JSON for automation
 - 🔢 **Semantic Versioning** - Proper major.minor.patch comparison
 - 🕐 **Accurate Age Tracking** - Calculates from first newer release
+- 💾 **Embedded Cache** - Historical releases built-in, minimal API calls
 - 🐳 **Docker Ready** - Multi-stage builds, tiny images
 - 🧪 **Well Tested** - Comprehensive unit tests included
 - 📦 **Zero Dependencies** - Single static binary, no runtime needed
@@ -478,6 +479,46 @@ This tool is written in Go for several compelling reasons:
 | Bash + jq         | ~5ms         | N/A         | 2MB          |
 | TypeScript (Node) | ~500ms       | N/A         | 40MB         |
 | Python            | ~200ms       | N/A         | 20MB         |
+
+## 💾 Release Data Caching
+
+This tool embeds historical release data to minimize GitHub API calls:
+
+- **Embedded cache**: All releases from v2.159.0 to build time
+- **API calls**: Always fetches 5 most recent releases (1 API call)
+- **Validation**: Checks if embedded cache is current (within top 5)
+- **Fallback**: Full API query if cache is more than 5 releases behind
+- **Updates**: Automated daily checks trigger new tool builds
+
+**Result**: Reduces API calls from 2 per invocation to 1, improving speed and rate limit usage.
+
+### Cache Architecture
+
+1. **Bootstrap Process**: `scripts/update-releases.sh` fetches all releases from GitHub API
+2. **Embedded Data**: `data/releases.json` is embedded in binary via `go:embed`
+3. **Runtime Logic**:
+   - Load embedded releases (instant, no API call)
+   - Fetch 5 most recent from API (1 API call)
+   - If latest embedded is in top 5: merge datasets (optimal path)
+   - If cache is stale: fall back to full API query (2 API calls total)
+
+### Maintaining the Cache
+
+The cache is automatically updated by GitHub Actions:
+
+- **Check**: `cmd/check-releases` validates embedded data currency
+- **Update**: Daily workflow runs at 6 AM UTC
+- **Commit**: Auto-commits new releases to trigger rebuild
+
+Manual update:
+
+```bash
+# Update releases.json with latest data
+./scripts/update-releases.sh
+
+# Rebuild binary with new embedded cache
+make build
+```
 
 ## 🛠️ Development
 

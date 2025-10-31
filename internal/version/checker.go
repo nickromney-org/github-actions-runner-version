@@ -6,12 +6,14 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/nickromney-org/github-actions-runner-version/internal/data"
 )
 
 // GitHubClient defines the interface for fetching releases
 type GitHubClient interface {
 	GetLatestRelease(ctx context.Context) (*Release, error)
 	GetAllReleases(ctx context.Context) ([]Release, error)
+	GetRecentReleases(ctx context.Context, count int) ([]Release, error)
 }
 
 // Checker performs version analysis
@@ -38,6 +40,33 @@ func (c *Checker) versionExists(releases []Release, version *semver.Version) boo
 	return false
 }
 
+// mergeReleases combines embedded and recent releases, deduplicating by version
+func (c *Checker) mergeReleases(embedded, recent []Release) []Release {
+	// Use map to deduplicate by version
+	seen := make(map[string]bool)
+	var merged []Release
+
+	// Add recent first (they're authoritative)
+	for _, r := range recent {
+		key := r.Version.String()
+		if !seen[key] {
+			seen[key] = true
+			merged = append(merged, r)
+		}
+	}
+
+	// Add embedded (skip duplicates)
+	for _, r := range embedded {
+		key := r.Version.String()
+		if !seen[key] {
+			seen[key] = true
+			merged = append(merged, r)
+		}
+	}
+
+	return merged
+}
+
 // Analyse performs the version analysis
 func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*Analysis, error) {
 	// Validate config
@@ -45,10 +74,53 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	// Fetch latest release
-	latestRelease, err := c.client.GetLatestRelease(ctx)
+	// Load embedded releases
+	embeddedData, err := data.LoadEmbeddedReleases()
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch latest release: %w", err)
+		return nil, fmt.Errorf("failed to load embedded releases: %w", err)
+	}
+
+	// Convert data.Release to version.Release
+	embeddedReleases := make([]Release, len(embeddedData))
+	for i, r := range embeddedData {
+		embeddedReleases[i] = Release{
+			Version:     r.Version,
+			PublishedAt: r.PublishedAt,
+			URL:         r.URL,
+		}
+	}
+
+	// Fetch 5 most recent releases from API
+	recentReleases, err := c.client.GetRecentReleases(ctx, 5)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch recent releases: %w", err)
+	}
+
+	// Determine which dataset to use
+	var allReleases []Release
+	if !c.isEmbeddedCurrent(embeddedReleases, recentReleases) {
+		// Embedded data is stale (>5 releases behind)
+		// Fall back to full API query
+		allReleases, err = c.client.GetAllReleases(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch all releases: %w", err)
+		}
+	} else {
+		// Merge embedded + recent (deduplicating)
+		allReleases = c.mergeReleases(embeddedReleases, recentReleases)
+	}
+
+	// Ensure we have releases
+	if len(allReleases) == 0 {
+		return nil, fmt.Errorf("no releases available")
+	}
+
+	// Get latest release from dataset
+	latestRelease := allReleases[0]
+	for _, r := range allReleases {
+		if r.Version.GreaterThan(latestRelease.Version) {
+			latestRelease = r
+		}
 	}
 
 	// If no comparison version, just return latest
@@ -78,12 +150,6 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 			MaxAgeDays:        c.config.MaxAgeDays,
 			Message:           fmt.Sprintf("✅ Version %s is up to date", comparisonVersion),
 		}, nil
-	}
-
-	// Fetch all releases to find newer versions
-	allReleases, err := c.client.GetAllReleases(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch all releases: %w", err)
 	}
 
 	// Validate version exists
@@ -276,4 +342,43 @@ func (c *Checker) generateMessage(analysis *Analysis) string {
 func daysBetween(start, end time.Time) int {
 	duration := end.Sub(start)
 	return int(duration.Hours() / 24)
+}
+
+// FindLatestRelease finds the release with the highest version number
+func FindLatestRelease(releases []Release) *Release {
+	if len(releases) == 0 {
+		return nil
+	}
+
+	latest := &releases[0]
+	for i := range releases {
+		if releases[i].Version.GreaterThan(latest.Version) {
+			latest = &releases[i]
+		}
+	}
+
+	return latest
+}
+
+// isEmbeddedCurrent checks if embedded data contains the latest release
+// by verifying the latest embedded version is in the recent 5 releases
+func (c *Checker) isEmbeddedCurrent(embedded, recent []Release) bool {
+	if len(embedded) == 0 || len(recent) == 0 {
+		return false
+	}
+
+	// Find latest embedded release
+	latestEmbedded := FindLatestRelease(embedded)
+	if latestEmbedded == nil {
+		return false
+	}
+
+	// Check if it exists in recent 5
+	for _, r := range recent {
+		if r.Version.Equal(latestEmbedded.Version) {
+			return true
+		}
+	}
+
+	return false
 }

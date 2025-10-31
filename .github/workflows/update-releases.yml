@@ -1,0 +1,57 @@
+---
+name: Update Release Cache
+
+"on":
+  schedule:
+    # Daily at 6 AM UTC (3 hours before runner check at 9 AM)
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+          cache: true
+
+      - name: Check if cache update needed
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          go run ./cmd/check-releases
+        continue-on-error: true
+
+      - name: Update release cache
+        if: steps.check.outcome == 'failure'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/update-releases.sh
+          ./scripts/update-releases.sh
+
+      - name: Commit and push changes
+        if: steps.check.outcome == 'failure'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add internal/data/releases.json
+
+          # Check if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          MSG="chore(cache): update release cache with latest runner versions"
+          git commit -m "${MSG}"
+          git push

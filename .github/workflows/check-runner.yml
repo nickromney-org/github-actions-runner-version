@@ -1,13 +1,15 @@
+---
 name: Check Runner Version
 
-on:
+"on":
   schedule:
     # Run daily at 9 AM UTC
     - cron: "0 9 * * *"
   workflow_dispatch:
     inputs:
       runner-version:
-        description: "Runner version to check (optional, defaults to auto-detect)"
+        description: >-
+          Runner version to check (optional, defaults to auto-detect)
         required: false
         type: string
 
@@ -28,21 +30,26 @@ jobs:
             echo "Using provided version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
           else
-            echo "::error::Could not detect runner version. Please specify manually."
+            echo "::error::Could not detect runner version."
+            echo "::error::Please specify manually."
             exit 1
           fi
 
       - name: Download version checker
         run: |
-          curl -LO https://github.com/yourusername/runner-version-checker/releases/latest/download/runner-version-check-linux-amd64
-          chmod +x runner-version-check-linux-amd64
-          sudo mv runner-version-check-linux-amd64 /usr/local/bin/runner-version-check
+          REPO="nickromney-org/github-actions-runner-version"
+          BINARY="github-actions-runner-version-linux-amd64"
+          URL="https://github.com/${REPO}/releases/latest/download"
+          curl -LO "${URL}/${BINARY}"
+          chmod +x "${BINARY}"
+          sudo mv "${BINARY}" /usr/local/bin/github-actions-runner-version
 
       - name: Check version compliance
         id: check
         run: |
-          # GITHUB_TOKEN is automatically detected - no need to pass -t flag
-          runner-version-check -c ${{ steps.runner-version.outputs.version }} --ci
+          VERSION="${{ steps.runner-version.outputs.version }}"
+          # GITHUB_TOKEN is automatically detected
+          github-actions-runner-version -c "${VERSION}" --ci
         continue-on-error: true
 
       - name: Create issue if expired
@@ -58,12 +65,15 @@ jobs:
             **Runner:** \`${{ runner.name }}\`
             **Current Version:** \`${version}\`
 
-            The runner version has exceeded the 30-day update policy and will no longer receive jobs from GitHub Actions.
+            The runner version has exceeded the 30-day update policy
+            and will no longer receive jobs from GitHub Actions.
 
             ### Action Required
             Update the runner to the latest version immediately.
 
-            See the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+            See the [workflow run](${{ github.server_url }}/${{
+            github.repository }}/actions/runs/${{ github.run_id }})
+            for details.
             `;
 
             // Check if issue already exists
@@ -100,7 +110,11 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Runner Version Status*\n\nRunner: `${{ runner.name }}`\nVersion: `${{ steps.runner-version.outputs.version }}`\n\nView details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    "text": "*Runner Version Status*\n\nRunner: `${{
+                    runner.name }}`\nVersion: `${{
+                    steps.runner-version.outputs.version
+                    }}`\n\nView details: ${{ github.server_url }}/${{
+                    github.repository }}/actions/runs/${{ github.run_id }}"
                   }
                 }
               ]
