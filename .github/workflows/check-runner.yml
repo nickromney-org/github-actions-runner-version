@@ -34,15 +34,15 @@ jobs:
 
       - name: Download version checker
         run: |
-          curl -LO https://github.com/yourusername/runner-version-checker/releases/latest/download/runner-version-check-linux-amd64
-          chmod +x runner-version-check-linux-amd64
-          sudo mv runner-version-check-linux-amd64 /usr/local/bin/runner-version-check
+          curl -LO https://github.com/nickromney-org/github-actions-runner-version/releases/latest/download/github-actions-runner-version-linux-amd64
+          chmod +x github-actions-runner-version-linux-amd64
+          sudo mv github-actions-runner-version-linux-amd64 /usr/local/bin/github-actions-runner-version
 
       - name: Check version compliance
         id: check
         run: |
           # GITHUB_TOKEN is automatically detected - no need to pass -t flag
-          runner-version-check -c ${{ steps.runner-version.outputs.version }} --ci
+          github-actions-runner-version -c ${{ steps.runner-version.outputs.version }} --ci
         continue-on-error: true
 
       - name: Create issue if expired
