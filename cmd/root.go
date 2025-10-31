@@ -24,6 +24,11 @@ var (
 	quiet             bool
 	githubToken       string
 
+	// Version information (set via SetVersionInfo from main)
+	appVersion   = "dev"
+	buildTime    = "unknown"
+	gitCommit    = "unknown"
+
 	// Colours for output
 	green  = colour.New(colour.FgGreen, colour.Bold)
 	yellow = colour.New(colour.FgYellow, colour.Bold)
@@ -31,6 +36,13 @@ var (
 	cyan   = colour.New(colour.FgCyan)
 	grey   = colour.New(colour.FgHiBlack) // Faint grey for timestamps
 )
+
+// SetVersionInfo sets the version information from the main package
+func SetVersionInfo(version, build, commit string) {
+	appVersion = version
+	buildTime = build
+	gitCommit = commit
+}
 
 var rootCmd = &cobra.Command{
 	Use:   "runner-version-check",

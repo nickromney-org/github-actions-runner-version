@@ -344,6 +344,22 @@ func daysBetween(start, end time.Time) int {
 	return int(duration.Hours() / 24)
 }
 
+// FindLatestRelease finds the release with the highest version number
+func FindLatestRelease(releases []Release) *Release {
+	if len(releases) == 0 {
+		return nil
+	}
+
+	latest := &releases[0]
+	for i := range releases {
+		if releases[i].Version.GreaterThan(latest.Version) {
+			latest = &releases[i]
+		}
+	}
+
+	return latest
+}
+
 // isEmbeddedCurrent checks if embedded data contains the latest release
 // by verifying the latest embedded version is in the recent 5 releases
 func (c *Checker) isEmbeddedCurrent(embedded, recent []Release) bool {
@@ -352,11 +368,9 @@ func (c *Checker) isEmbeddedCurrent(embedded, recent []Release) bool {
 	}
 
 	// Find latest embedded release
-	latestEmbedded := embedded[0]
-	for _, r := range embedded {
-		if r.Version.GreaterThan(latestEmbedded.Version) {
-			latestEmbedded = r
-		}
+	latestEmbedded := FindLatestRelease(embedded)
+	if latestEmbedded == nil {
+		return false
 	}
 
 	// Check if it exists in recent 5

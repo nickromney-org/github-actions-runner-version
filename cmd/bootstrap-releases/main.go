@@ -24,7 +24,7 @@ type CacheFile struct {
 
 func main() {
 	token := flag.String("token", os.Getenv("GITHUB_TOKEN"), "GitHub token")
-	output := flag.String("output", "data/releases.json", "Output file")
+	output := flag.String("output", "internal/data/releases.json", "Output file")
 	flag.Parse()
 
 	client := github.NewClient(*token)

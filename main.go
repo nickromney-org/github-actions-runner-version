@@ -6,7 +6,17 @@ import (
 	"github.com/nickromney-org/github-actions-runner-version/cmd"
 )
 
+// Version information (set via ldflags during build)
+var (
+	Version   = "dev"
+	BuildTime = "unknown"
+	GitCommit = "unknown"
+)
+
 func main() {
+	// Pass version info to cmd package
+	cmd.SetVersionInfo(Version, BuildTime, GitCommit)
+
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
 	}

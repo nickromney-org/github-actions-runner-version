@@ -8,6 +8,7 @@ import (
 
 	"github.com/nickromney-org/github-actions-runner-version/internal/data"
 	"github.com/nickromney-org/github-actions-runner-version/internal/github"
+	"github.com/nickromney-org/github-actions-runner-version/internal/version"
 )
 
 func main() {
@@ -18,25 +19,34 @@ func main() {
 	ctx := context.Background()
 
 	// Load embedded releases
-	embedded, err := data.LoadEmbeddedReleases()
+	embeddedData, err := data.LoadEmbeddedReleases()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading embedded releases: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Find latest embedded version
+	// Convert data.Release to version.Release
+	embedded := make([]version.Release, len(embeddedData))
+	for i, r := range embeddedData {
+		embedded[i] = version.Release{
+			Version:     r.Version,
+			PublishedAt: r.PublishedAt,
+			URL:         r.URL,
+		}
+	}
+
+	// Find latest embedded version using helper
 	if len(embedded) == 0 {
 		fmt.Fprintf(os.Stderr, "Error: No embedded releases found\n")
 		os.Exit(1)
 	}
 
-	latestEmbeddedVersion := embedded[0].Version
-	for _, r := range embedded {
-		if r.Version.GreaterThan(latestEmbeddedVersion) {
-			latestEmbeddedVersion = r.Version
-		}
+	latestEmbeddedRelease := version.FindLatestRelease(embedded)
+	if latestEmbeddedRelease == nil {
+		fmt.Fprintf(os.Stderr, "Error: Could not find latest embedded release\n")
+		os.Exit(1)
 	}
-	latestEmbedded := latestEmbeddedVersion.String()
+	latestEmbedded := latestEmbeddedRelease.Version.String()
 
 	// Fetch 5 most recent from API
 	recent, err := client.GetRecentReleases(ctx, 5)
@@ -59,17 +69,11 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Get latest available version from API
+	// Get latest available version from API using helper
+	latestAvailableRelease := version.FindLatestRelease(recent)
 	latestAvailable := ""
-	if len(recent) > 0 {
-		latestAvailableVersion := recent[0].Version
-		// Find the actual latest by comparing all
-		for _, r := range recent {
-			if r.Version.GreaterThan(latestAvailableVersion) {
-				latestAvailableVersion = r.Version
-			}
-		}
-		latestAvailable = latestAvailableVersion.String()
+	if latestAvailableRelease != nil {
+		latestAvailable = latestAvailableRelease.Version.String()
 	}
 
 	fmt.Printf("⚠️  Cache needs update (latest embedded: %s, latest available: %s)\n",

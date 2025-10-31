@@ -2,7 +2,7 @@
 set -euo pipefail
 
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
-OUTPUT_FILE="data/releases.json"
+OUTPUT_FILE="internal/data/releases.json"
 
 echo "Fetching all releases from GitHub..."
 
