@@ -25,10 +25,40 @@ type Release struct {
 	URL         string
 }
 
+// ReleaseExpiry represents expiry information for a single release
+type ReleaseExpiry struct {
+	Version         *semver.Version `json:"version"`
+	ReleasedAt      time.Time       `json:"released"`
+	ExpiresAt       *time.Time      `json:"expires"`
+	DaysUntilExpiry int             `json:"days_until_expiry"`
+	IsExpired       bool            `json:"is_expired"`
+	IsLatest        bool            `json:"is_latest"`
+}
+
+// MarshalJSON implements custom JSON marshaling for ReleaseExpiry
+func (r *ReleaseExpiry) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Version         string     `json:"version"`
+		ReleasedAt      string     `json:"released"`
+		ExpiresAt       *string    `json:"expires"`
+		DaysUntilExpiry int        `json:"days_until_expiry"`
+		IsExpired       bool       `json:"is_expired"`
+		IsLatest        bool       `json:"is_latest"`
+	}{
+		Version:         r.Version.String(),
+		ReleasedAt:      r.ReleasedAt.Format(time.RFC3339),
+		ExpiresAt:       timeString(r.ExpiresAt),
+		DaysUntilExpiry: r.DaysUntilExpiry,
+		IsExpired:       r.IsExpired,
+		IsLatest:        r.IsLatest,
+	})
+}
+
 // Analysis contains the full version analysis results
 type Analysis struct {
 	LatestVersion          *semver.Version `json:"latest_version"`
 	ComparisonVersion      *semver.Version `json:"comparison_version,omitempty"`
+	ComparisonReleasedAt   *time.Time      `json:"comparison_released_at,omitempty"`
 	IsLatest               bool            `json:"is_latest"`
 	IsExpired              bool            `json:"is_expired"`
 	IsCritical             bool            `json:"is_critical"`
@@ -37,6 +67,7 @@ type Analysis struct {
 	FirstNewerVersion      *semver.Version `json:"first_newer_version,omitempty"`
 	FirstNewerReleaseDate  *time.Time      `json:"first_newer_release_date,omitempty"`
 	NewerReleases          []Release       `json:"newer_releases,omitempty"`
+	RecentReleases         []ReleaseExpiry `json:"recent_releases,omitempty"`
 	Message                string          `json:"message"`
 
 	// Configuration used
@@ -71,17 +102,19 @@ func (a *Analysis) MarshalJSON() ([]byte, error) {
 	return json.MarshalIndent(&struct {
 		LatestVersion         string  `json:"latest_version"`
 		ComparisonVersion     string  `json:"comparison_version,omitempty"`
+		ComparisonReleasedAt  *string `json:"comparison_released_at,omitempty"`
 		FirstNewerVersion     string  `json:"first_newer_version,omitempty"`
 		FirstNewerReleaseDate *string `json:"first_newer_release_date,omitempty"`
 		Status                Status  `json:"status"`
 		*Alias
 	}{
-		LatestVersion:     a.LatestVersion.String(),
-		ComparisonVersion: versionString(a.ComparisonVersion),
-		FirstNewerVersion: versionString(a.FirstNewerVersion),
+		LatestVersion:        a.LatestVersion.String(),
+		ComparisonVersion:    versionString(a.ComparisonVersion),
+		ComparisonReleasedAt: timeString(a.ComparisonReleasedAt),
+		FirstNewerVersion:    versionString(a.FirstNewerVersion),
 		FirstNewerReleaseDate: timeString(a.FirstNewerReleaseDate),
-		Status:            a.Status(),
-		Alias:             (*Alias)(a),
+		Status:               a.Status(),
+		Alias:                (*Alias)(a),
 	}, "", "  ")
 }
 
