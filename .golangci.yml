@@ -1,0 +1,11 @@
+linters:
+  enable:
+    - misspell
+    - gofmt
+    - govet
+
+linters-settings:
+  misspell:
+    locale: UK
+    ignore-words:
+      - color  # Keep for imported package names (fatih/color)
