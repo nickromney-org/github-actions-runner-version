@@ -23,11 +23,12 @@ var (
 	ciOutput          bool
 	quiet             bool
 	githubToken       string
+	showVersion       bool
 
 	// Version information (set via SetVersionInfo from main)
-	appVersion   = "dev"
-	buildTime    = "unknown"
-	gitCommit    = "unknown"
+	appVersion = "dev"
+	buildTime  = "unknown"
+	gitCommit  = "unknown"
 
 	// Colours for output
 	green  = colour.New(colour.FgGreen, colour.Bold)
@@ -74,6 +75,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&ciOutput, "ci", false, "format output for CI/GitHub Actions")
 	rootCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "quiet output (suppress expiry table)")
 	rootCmd.Flags().StringVarP(&githubToken, "token", "t", os.Getenv("GITHUB_TOKEN"), "GitHub token (or GITHUB_TOKEN env var)")
+	rootCmd.Flags().BoolVar(&showVersion, "version", false, "show version information")
 }
 
 func Execute() error {
@@ -117,6 +119,14 @@ func getGitHubCLIToken() (string, error) {
 func run(cmd *cobra.Command, args []string) error {
 	// Disable automatic usage printing on error
 	cmd.SilenceUsage = true
+
+	// Show version if requested
+	if showVersion {
+		fmt.Printf("github-actions-runner-version %s\n", appVersion)
+		fmt.Printf("Build time: %s\n", buildTime)
+		fmt.Printf("Git commit: %s\n", gitCommit)
+		return nil
+	}
 
 	// Validate inputs
 	if criticalAgeDays >= maxAgeDays {
