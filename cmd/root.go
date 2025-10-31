@@ -7,9 +7,9 @@ import (
 	"time"
 
 	colour "github.com/fatih/color"
-	"github.com/spf13/cobra"
 	"github.com/nickromney-org/github-actions-runner-version/internal/github"
 	"github.com/nickromney-org/github-actions-runner-version/internal/version"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -27,7 +27,7 @@ var (
 	yellow = colour.New(colour.FgYellow, colour.Bold)
 	red    = colour.New(colour.FgRed, colour.Bold)
 	cyan   = colour.New(colour.FgCyan)
-	gray   = colour.New(colour.Faint)
+	grey   = colour.New(colour.FgHiBlack) // Faint grey for timestamps
 )
 
 var rootCmd = &cobra.Command{
@@ -492,7 +492,6 @@ func printExpiryTable(analysis *version.Analysis) {
 	// Add timestamp footer
 	now := time.Now().UTC()
 	timestamp := now.Format("2 Jan 2006 15:04:05 MST")
-	grey := colour.New(colour.FgHiBlack)
 	grey.Printf("\nChecked at: %s\n", timestamp)
 }
 

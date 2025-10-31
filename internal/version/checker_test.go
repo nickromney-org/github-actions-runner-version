@@ -250,10 +250,10 @@ func TestCalculateRecentReleases_Last90Days(t *testing.T) {
 func TestCalculateRecentReleases_Minimum4(t *testing.T) {
 	// Only 2 releases in last 90 days, but should return minimum 4
 	releases := []Release{
-		newTestRelease("2.329.0", 5),    // 5 days ago
-		newTestRelease("2.328.0", 25),   // 25 days ago
-		newTestRelease("2.327.0", 100),  // 100 days ago
-		newTestRelease("2.326.0", 120),  // 120 days ago
+		newTestRelease("2.329.0", 5),   // 5 days ago
+		newTestRelease("2.328.0", 25),  // 25 days ago
+		newTestRelease("2.327.0", 100), // 100 days ago
+		newTestRelease("2.326.0", 120), // 120 days ago
 	}
 
 	comparisonVersion := semver.MustParse("2.327.0")

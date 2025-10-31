@@ -6,7 +6,8 @@
       "Bash(git commit -m \"$(cat <<''EOF''\nfeat: add ReleaseExpiry type and extend Analysis struct\n\n- Add ReleaseExpiry struct with JSON marshaling\n- Add RecentReleases field to Analysis\n- Add ComparisonReleasedAt field to track comparison version release date\n- Test JSON marshaling for new types\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(make build:*)",
       "Bash(./bin/github-actions-runner-version:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(make test:*)"
     ],
     "deny": [],
     "ask": []
