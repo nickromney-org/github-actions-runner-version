@@ -129,6 +129,49 @@ func run(cmd *cobra.Command, args []string) error {
 
 			os.Exit(1) // Exit with error code after showing helpful context
 		}
+		// Check if it's an API error (rate limiting, network, etc.)
+		if strings.Contains(err.Error(), "failed to fetch") || strings.Contains(err.Error(), "failed to get") || strings.Contains(err.Error(), "failed to list") {
+			red.Printf("\n❌ Error: Unable to fetch release information from GitHub API\n\n")
+
+			// Check if it's specifically a rate limit error
+			if strings.Contains(err.Error(), "rate limit") {
+				yellow.Println("⚠️  GitHub API Rate Limit Exceeded")
+				yellow.Println()
+				yellow.Println("   Unauthenticated requests are limited to 60 per hour.")
+				yellow.Println("   Authenticated requests get 5,000 per hour.")
+				yellow.Println()
+				yellow.Println("💡 To authenticate:")
+				yellow.Println("   • Use the -t flag: runner-version-check -t YOUR_TOKEN")
+				yellow.Println("   • Or set GITHUB_TOKEN environment variable")
+				yellow.Println()
+				yellow.Println("   Create a token at: https://github.com/settings/tokens")
+				yellow.Println("   (Only needs 'public_repo' read access)")
+
+				// Extract rate limit reset time if available
+				if strings.Contains(err.Error(), "rate reset in") {
+					start := strings.Index(err.Error(), "rate reset in")
+					if start != -1 {
+						resetInfo := err.Error()[start:]
+						end := strings.Index(resetInfo, "]")
+						if end != -1 {
+							resetTime := resetInfo[:end]
+							yellow.Printf("\n   Rate limit resets in: %s\n", strings.TrimPrefix(resetTime, "rate reset in "))
+						}
+					}
+				}
+			} else {
+				// Other API errors (network, etc.)
+				yellow.Println("ℹ️  Possible causes:")
+				yellow.Println("   • Network connectivity issues")
+				yellow.Println("   • GitHub API temporarily unavailable")
+				yellow.Println("   • Firewall blocking api.github.com")
+				yellow.Println()
+				yellow.Printf("   Error details: %v\n", err)
+			}
+
+			os.Exit(1)
+		}
+
 		return fmt.Errorf("analysis failed: %w", err)
 	}
 
