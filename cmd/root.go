@@ -294,26 +294,62 @@ func printStatus(analysis *version.Analysis) {
 	icon := getStatusIcon(status)
 	colourFunc := getStatusColour(status)
 
-	// Main status line
-	colourFunc.Printf("%s %s\n", icon, analysis.Message)
+	var statusLine string
 
-	// Additional context
-	if status == version.StatusExpired || status == version.StatusCritical {
-		fmt.Println()
-		if analysis.FirstNewerVersion != nil {
-			cyan.Printf("   📦 Update available: v%s\n", analysis.FirstNewerVersion)
-			if analysis.FirstNewerReleaseDate != nil {
-				gray.Printf("      Released: %s (%d days ago)\n",
-					analysis.FirstNewerReleaseDate.Format("Jan 2, 2006"),
-					analysis.DaysSinceUpdate)
+	if analysis.ComparisonVersion == nil {
+		// No comparison - just show latest
+		statusLine = fmt.Sprintf("%s Latest version: v%s", icon, analysis.LatestVersion)
+	} else if analysis.IsLatest {
+		// On latest version
+		if analysis.ComparisonReleasedAt != nil {
+			statusLine = fmt.Sprintf("%s Version %s (%s) is the latest version",
+				icon,
+				analysis.ComparisonVersion,
+				formatUKDate(*analysis.ComparisonReleasedAt))
+		} else {
+			statusLine = fmt.Sprintf("%s Version %s is the latest version",
+				icon,
+				analysis.ComparisonVersion)
+		}
+	} else {
+		// Behind - construct full status line
+		comparisonDate := ""
+		if analysis.ComparisonReleasedAt != nil {
+			comparisonDate = fmt.Sprintf(" (%s)", formatUKDate(*analysis.ComparisonReleasedAt))
+		}
+
+		expiryInfo := ""
+		if analysis.FirstNewerReleaseDate != nil {
+			expiryDate := analysis.FirstNewerReleaseDate.AddDate(0, 0, 30)
+
+			if analysis.IsExpired {
+				expiryInfo = fmt.Sprintf(" EXPIRED %s", formatUKDate(expiryDate))
+			} else if analysis.IsCritical {
+				daysLeft := 30 - analysis.DaysSinceUpdate
+				expiryInfo = fmt.Sprintf(" EXPIRES %s (%d days)", formatUKDate(expiryDate), daysLeft)
+			} else {
+				expiryInfo = fmt.Sprintf(" expires %s", formatUKDate(expiryDate))
 			}
 		}
-		cyan.Printf("   🎯 Latest version: v%s\n", analysis.LatestVersion)
 
-		if analysis.ReleasesBehind > 1 {
-			yellow.Printf("   ⚠️  %d releases behind\n", analysis.ReleasesBehind)
+		latestDate := ""
+		for _, r := range analysis.RecentReleases {
+			if r.IsLatest {
+				latestDate = fmt.Sprintf(" (Released %s)", formatUKDate(r.ReleasedAt))
+				break
+			}
 		}
+
+		statusLine = fmt.Sprintf("%s Version %s%s%s: Update to v%s%s",
+			icon,
+			analysis.ComparisonVersion,
+			comparisonDate,
+			expiryInfo,
+			analysis.LatestVersion,
+			latestDate)
 	}
+
+	colourFunc.Println(statusLine)
 }
 
 func printDetails(analysis *version.Analysis) {
