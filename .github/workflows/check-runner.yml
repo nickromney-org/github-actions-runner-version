@@ -41,6 +41,7 @@ jobs:
       - name: Check version compliance
         id: check
         run: |
+          # GITHUB_TOKEN is automatically detected - no need to pass -t flag
           runner-version-check -c ${{ steps.runner-version.outputs.version }} --ci
         continue-on-error: true
 

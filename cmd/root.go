@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -67,6 +68,40 @@ func Execute() error {
 	return rootCmd.Execute()
 }
 
+// detectGitHubToken attempts to find a GitHub token from multiple sources
+func detectGitHubToken(providedToken string) string {
+	// 1. Use explicitly provided token (via -t flag or GITHUB_TOKEN env var)
+	//    Note: GITHUB_TOKEN is automatically available in GitHub Actions
+	if providedToken != "" {
+		return providedToken
+	}
+
+	// 2. Try to get token from GitHub CLI
+	ghToken, err := getGitHubCLIToken()
+	if err == nil && ghToken != "" {
+		return ghToken
+	}
+
+	// 3. No token found - will use unauthenticated requests
+	return ""
+}
+
+// getGitHubCLIToken attempts to retrieve a token from the GitHub CLI
+func getGitHubCLIToken() (string, error) {
+	cmd := exec.Command("gh", "auth", "token")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+
+	token := strings.TrimSpace(string(output))
+	if token == "" {
+		return "", fmt.Errorf("gh auth token returned empty")
+	}
+
+	return token, nil
+}
+
 func run(cmd *cobra.Command, args []string) error {
 	// Disable automatic usage printing on error
 	cmd.SilenceUsage = true
@@ -76,8 +111,11 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("critical-days (%d) must be less than max-days (%d)", criticalAgeDays, maxAgeDays)
 	}
 
+	// Auto-detect GitHub token from multiple sources if not provided
+	token := detectGitHubToken(githubToken)
+
 	// Create GitHub client
-	client := github.NewClient(githubToken)
+	client := github.NewClient(token)
 
 	// Create checker with config
 	checker := version.NewChecker(client, version.CheckerConfig{
@@ -140,9 +178,11 @@ func run(cmd *cobra.Command, args []string) error {
 				yellow.Println("   Unauthenticated requests are limited to 60 per hour.")
 				yellow.Println("   Authenticated requests get 5,000 per hour.")
 				yellow.Println()
-				yellow.Println("💡 To authenticate:")
-				yellow.Println("   • Use the -t flag: runner-version-check -t YOUR_TOKEN")
-				yellow.Println("   • Or set GITHUB_TOKEN environment variable")
+				yellow.Println("💡 Authentication options (auto-detected in order):")
+				yellow.Println("   1. Use the -t flag: runner-version-check -t YOUR_TOKEN")
+				yellow.Println("   2. Set GITHUB_TOKEN environment variable")
+				yellow.Println("   3. GitHub CLI: gh auth login (automatically detected)")
+				yellow.Println("   4. GitHub Actions: GITHUB_TOKEN is auto-available")
 				yellow.Println()
 				yellow.Println("   Create a token at: https://github.com/settings/tokens")
 				yellow.Println("   (Only needs 'public_repo' read access)")
