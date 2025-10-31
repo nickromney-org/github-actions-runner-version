@@ -1,3 +1,4 @@
+---
 feature: ["feat/*"]
 bugfix: ["fix/*", "bug/*"]
 chore: ["chore/*"]

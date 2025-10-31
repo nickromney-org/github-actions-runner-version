@@ -1,6 +1,7 @@
+---
 name: Build and Release
 
-on:
+"on":
   push:
     tags:
       - "*"
@@ -52,8 +53,13 @@ jobs:
           BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
           GIT_COMMIT=$(git rev-parse --short HEAD)
 
+          LDFLAGS="-w -s"
+          LDFLAGS="${LDFLAGS} -X main.Version=${VERSION}"
+          LDFLAGS="${LDFLAGS} -X main.BuildTime=${BUILD_TIME}"
+          LDFLAGS="${LDFLAGS} -X main.GitCommit=${GIT_COMMIT}"
+
           go build \
-            -ldflags="-w -s -X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME} -X main.GitCommit=${GIT_COMMIT}" \
+            -ldflags="${LDFLAGS}" \
             -o "bin/${BINARY_NAME}" \
             .
 
