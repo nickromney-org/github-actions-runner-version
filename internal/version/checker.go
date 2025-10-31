@@ -110,6 +110,11 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 		allReleases = c.mergeReleases(embeddedReleases, recentReleases)
 	}
 
+	// Ensure we have releases
+	if len(allReleases) == 0 {
+		return nil, fmt.Errorf("no releases available")
+	}
+
 	// Get latest release from dataset
 	latestRelease := allReleases[0]
 	for _, r := range allReleases {
