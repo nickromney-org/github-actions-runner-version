@@ -277,10 +277,16 @@ func outputTerminal(analysis *version.Analysis) error {
 		return nil
 	}
 
-	// Print detailed status
+	// Print status
 	fmt.Println()
 	printStatus(analysis)
 
+	// Print expiry table unless quiet mode
+	if !quiet {
+		printExpiryTable(analysis)
+	}
+
+	// Print verbose details if requested
 	if verbose {
 		fmt.Println()
 		printDetails(analysis)
@@ -350,6 +356,48 @@ func printStatus(analysis *version.Analysis) {
 	}
 
 	colourFunc.Println(statusLine)
+}
+
+func printExpiryTable(analysis *version.Analysis) {
+	if len(analysis.RecentReleases) == 0 {
+		return
+	}
+
+	fmt.Println()
+	cyan.Println("📅 Release Expiry Timeline")
+	cyan.Println("─────────────────────────────────────────────────────")
+	fmt.Printf("%-10s %-14s %-14s %s\n", "Version", "Released", "Expires", "Status")
+
+	for _, release := range analysis.RecentReleases {
+		versionStr := release.Version.String()
+		releasedStr := formatUKDate(release.ReleasedAt)
+
+		var expiresStr string
+		var statusStr string
+
+		if release.IsLatest {
+			expiresStr = "-"
+			daysAgo := int(time.Since(release.ReleasedAt).Hours() / 24)
+			statusStr = fmt.Sprintf("✅ Latest (%s)", formatDaysAgo(daysAgo))
+		} else if release.ExpiresAt != nil {
+			expiresStr = formatUKDate(*release.ExpiresAt)
+
+			if release.IsExpired {
+				daysExpired := -release.DaysUntilExpiry
+				statusStr = fmt.Sprintf("❌ Expired %s", formatDaysAgo(daysExpired))
+			} else {
+				statusStr = fmt.Sprintf("✅ Valid (%s left)", formatDaysInFuture(release.DaysUntilExpiry))
+			}
+		}
+
+		// Mark user's version
+		arrow := ""
+		if analysis.ComparisonVersion != nil && release.Version.Equal(analysis.ComparisonVersion) {
+			arrow = "  ← Your version"
+		}
+
+		fmt.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+	}
 }
 
 func printDetails(analysis *version.Analysis) {
