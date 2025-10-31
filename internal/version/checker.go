@@ -106,6 +106,17 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 		MaxAgeDays:        c.config.MaxAgeDays,
 	}
 
+	// Calculate recent releases for timeline table
+	analysis.RecentReleases = c.calculateRecentReleases(allReleases, comparisonVersion, latestRelease.Version)
+
+	// Find comparison version release date
+	for _, release := range allReleases {
+		if release.Version.Equal(comparisonVersion) {
+			analysis.ComparisonReleasedAt = &release.PublishedAt
+			break
+		}
+	}
+
 	// Calculate age from first newer release
 	if len(newerReleases) > 0 {
 		firstNewer := newerReleases[0]

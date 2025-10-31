@@ -189,6 +189,42 @@ func TestAnalyse_NonExistentVersion(t *testing.T) {
 	}
 }
 
+func TestAnalyse_PopulatesRecentReleases(t *testing.T) {
+	releases := []Release{
+		newTestRelease("2.329.0", 5),
+		newTestRelease("2.328.0", 25),
+		newTestRelease("2.327.1", 50),
+		newTestRelease("2.327.0", 80),
+	}
+
+	client := &MockGitHubClient{
+		LatestRelease: &releases[0],
+		AllReleases:   releases,
+	}
+
+	checker := NewChecker(client, CheckerConfig{
+		CriticalAgeDays: 12,
+		MaxAgeDays:      30,
+	})
+
+	ctx := context.Background()
+	analysis, err := checker.Analyse(ctx, "2.327.1")
+
+	if err != nil {
+		t.Fatalf("Analyse failed: %v", err)
+	}
+
+	if len(analysis.RecentReleases) == 0 {
+		t.Error("expected RecentReleases to be populated")
+	}
+
+	// Latest should have no expiry
+	latest := analysis.RecentReleases[len(analysis.RecentReleases)-1]
+	if latest.ExpiresAt != nil {
+		t.Error("latest version should have no expiry date")
+	}
+}
+
 func TestCalculateRecentReleases_Last90Days(t *testing.T) {
 	// Create releases spanning 120 days
 	releases := []Release{
