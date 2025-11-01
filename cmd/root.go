@@ -24,6 +24,7 @@ var (
 	quiet             bool
 	githubToken       string
 	showVersion       bool
+	noCache           bool
 
 	// Version information (set via SetVersionInfo from main)
 	appVersion = "dev"
@@ -76,6 +77,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "quiet output (suppress expiry table)")
 	rootCmd.Flags().StringVarP(&githubToken, "token", "t", os.Getenv("GITHUB_TOKEN"), "GitHub token (or GITHUB_TOKEN env var)")
 	rootCmd.Flags().BoolVar(&showVersion, "version", false, "show version information")
+	rootCmd.Flags().BoolVarP(&noCache, "no-cache", "n", false, "bypass embedded cache and always fetch from GitHub API")
 }
 
 func Execute() error {
@@ -143,11 +145,23 @@ func run(cmd *cobra.Command, args []string) error {
 	checker := version.NewChecker(client, version.CheckerConfig{
 		CriticalAgeDays: criticalAgeDays,
 		MaxAgeDays:      maxAgeDays,
+		NoCache:         noCache,
 	})
 
 	// Run analysis
 	analysis, err := checker.Analyse(cmd.Context(), comparisonVersion)
 	if err != nil {
+		// For JSON output, return error as JSON
+		if jsonOutput {
+			outputErrorJSON(err)
+			os.Exit(1)
+		}
+
+		// For CI output, return error immediately without formatting
+		if ciOutput {
+			return fmt.Errorf("%v", err)
+		}
+
 		// If invalid semantic version format, show helpful context
 		if strings.Contains(err.Error(), "invalid comparison version") {
 			red.Printf("\n❌ Error: %v\n\n", err)
@@ -256,6 +270,14 @@ func outputJSON(analysis *version.Analysis) error {
 	}
 	fmt.Println(string(data))
 	return nil
+}
+
+func outputErrorJSON(err error) {
+	errorJSON := fmt.Sprintf(`{
+  "error": %q,
+  "success": false
+}`, err.Error())
+	fmt.Println(errorJSON)
 }
 
 func outputCI(analysis *version.Analysis) error {

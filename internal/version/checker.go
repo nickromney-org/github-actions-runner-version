@@ -74,40 +74,51 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	// Load embedded releases
-	embeddedData, err := data.LoadEmbeddedReleases()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load embedded releases: %w", err)
-	}
-
-	// Convert data.Release to version.Release
-	embeddedReleases := make([]Release, len(embeddedData))
-	for i, r := range embeddedData {
-		embeddedReleases[i] = Release{
-			Version:     r.Version,
-			PublishedAt: r.PublishedAt,
-			URL:         r.URL,
-		}
-	}
-
-	// Fetch 5 most recent releases from API
-	recentReleases, err := c.client.GetRecentReleases(ctx, 5)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch recent releases: %w", err)
-	}
-
 	// Determine which dataset to use
 	var allReleases []Release
-	if !c.isEmbeddedCurrent(embeddedReleases, recentReleases) {
-		// Embedded data is stale (>5 releases behind)
-		// Fall back to full API query
+	var err error
+
+	if c.config.NoCache {
+		// Bypass embedded cache - fetch all releases from API
 		allReleases, err = c.client.GetAllReleases(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch all releases: %w", err)
 		}
 	} else {
-		// Merge embedded + recent (deduplicating)
-		allReleases = c.mergeReleases(embeddedReleases, recentReleases)
+		// Use embedded cache with validation
+		// Load embedded releases
+		embeddedData, err := data.LoadEmbeddedReleases()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load embedded releases: %w", err)
+		}
+
+		// Convert data.Release to version.Release
+		embeddedReleases := make([]Release, len(embeddedData))
+		for i, r := range embeddedData {
+			embeddedReleases[i] = Release{
+				Version:     r.Version,
+				PublishedAt: r.PublishedAt,
+				URL:         r.URL,
+			}
+		}
+
+		// Fetch 5 most recent releases from API
+		recentReleases, err := c.client.GetRecentReleases(ctx, 5)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch recent releases: %w", err)
+		}
+
+		if !c.isEmbeddedCurrent(embeddedReleases, recentReleases) {
+			// Embedded data is stale (>5 releases behind)
+			// Fall back to full API query
+			allReleases, err = c.client.GetAllReleases(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to fetch all releases: %w", err)
+			}
+		} else {
+			// Merge embedded + recent (deduplicating)
+			allReleases = c.mergeReleases(embeddedReleases, recentReleases)
+		}
 	}
 
 	// Ensure we have releases
