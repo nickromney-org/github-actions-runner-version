@@ -97,28 +97,3 @@ jobs:
                 labels: ['runner', 'runner-version-expired', 'critical']
               });
             }
-
-      - name: Send Slack notification if critical
-        if: steps.check.outcome == 'success'
-        uses: slackapi/slack-github-action@v1
-        with:
-          payload: |
-            {
-              "text": "⚠️ Runner version check completed",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*Runner Version Status*\n\nRunner: `${{
-                    runner.name }}`\nVersion: `${{
-                    steps.runner-version.outputs.version
-                    }}`\n\nView details: ${{ github.server_url }}/${{
-                    github.repository }}/actions/runs/${{ github.run_id }}"
-                  }
-                }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        continue-on-error: true
