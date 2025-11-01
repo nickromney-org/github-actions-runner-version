@@ -151,8 +151,14 @@ func run(cmd *cobra.Command, args []string) error {
 	// Run analysis
 	analysis, err := checker.Analyse(cmd.Context(), comparisonVersion)
 	if err != nil {
-		// For JSON/CI output, return error immediately without formatting
-		if jsonOutput || ciOutput {
+		// For JSON output, return error as JSON
+		if jsonOutput {
+			outputErrorJSON(err)
+			os.Exit(1)
+		}
+
+		// For CI output, return error immediately without formatting
+		if ciOutput {
 			return fmt.Errorf("%v", err)
 		}
 
@@ -264,6 +270,14 @@ func outputJSON(analysis *version.Analysis) error {
 	}
 	fmt.Println(string(data))
 	return nil
+}
+
+func outputErrorJSON(err error) {
+	errorJSON := fmt.Sprintf(`{
+  "error": %q,
+  "success": false
+}`, err.Error())
+	fmt.Println(errorJSON)
 }
 
 func outputCI(analysis *version.Analysis) error {
