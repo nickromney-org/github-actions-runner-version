@@ -9,15 +9,17 @@ name: Check Runner Version
     inputs:
       runner-version:
         description: >-
-          Runner version to check (optional, defaults to auto-detect)
+          Runner version to check (optional, defaults to auto-detect or latest)
         required: false
         type: string
       runs-on:
-        description: >-
-          Runner to use (self-hosted or ubuntu-latest for testing)
-        required: false
-        type: string
-        default: self-hosted
+        description: Runner to use
+        required: true
+        type: choice
+        options:
+          - ubuntu-latest
+          - self-hosted
+        default: ubuntu-latest
 
 jobs:
   check-version:
@@ -34,13 +36,20 @@ jobs:
           # Try to auto-detect on self-hosted runner
           elif [ -f "$RUNNER_HOME/.runner" ]; then
             VERSION=$(cat "$RUNNER_HOME/.runner" | jq -r '.agentVersion')
-            echo "Detected runner version: $VERSION"
+            echo "Detected self-hosted runner version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
-          # GitHub-hosted runner - skip version check
+          # GitHub-hosted runner - fetch latest version from API and use previous version for demo
           else
-            echo "::notice::Running on GitHub-hosted runner (no self-hosted runner to check)"
-            echo "::notice::This workflow is designed to check self-hosted runner versions"
-            echo "version=" >> $GITHUB_OUTPUT
+            echo "Running on GitHub-hosted runner - fetching version for demonstration"
+            # Get latest version from GitHub API
+            LATEST=$(curl -s https://api.github.com/repos/actions/runner/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+            echo "Latest runner version: $LATEST"
+
+            # Use latest version for the check (GitHub-hosted runners are always current)
+            # This demonstrates the tool showing a "current" status
+            VERSION="$LATEST"
+            echo "Checking GitHub-hosted runner against latest version: $VERSION"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
           fi
 
       - name: Download version checker
@@ -54,9 +63,9 @@ jobs:
 
       - name: Check version compliance
         id: check
-        if: steps.runner-version.outputs.version != ''
         run: |
           VERSION="${{ steps.runner-version.outputs.version }}"
+          echo "Checking version: $VERSION"
           # GITHUB_TOKEN is automatically detected
           github-actions-runner-version -c "${VERSION}" --ci
         continue-on-error: true
