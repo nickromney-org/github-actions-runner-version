@@ -38,7 +38,7 @@ jobs:
             VERSION=$(cat "$RUNNER_HOME/.runner" | jq -r '.agentVersion')
             echo "Detected self-hosted runner version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
-          # GitHub-hosted runner - use previous version for demonstration
+          # GitHub-hosted runner - fetch versions for dual demonstration
           else
             echo "Running on GitHub-hosted runner - fetching for demo"
             # Get the two most recent versions from GitHub API
@@ -51,11 +51,10 @@ jobs:
             echo "Latest runner version: $LATEST"
             echo "Previous runner version: $PREVIOUS"
 
-            # Check previous version to show warning status and expiry table
-            # Demonstrates: latest version, status, recent releases table
-            VERSION="$PREVIOUS"
-            echo "Checking previous version ($VERSION) to demo tool output"
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            # Export both for demonstration steps
+            echo "version=$LATEST" >> $GITHUB_OUTPUT
+            echo "latest=$LATEST" >> $GITHUB_OUTPUT
+            echo "previous=$PREVIOUS" >> $GITHUB_OUTPUT
           fi
 
       - name: Download version checker
@@ -67,17 +66,41 @@ jobs:
           chmod +x "${BINARY}"
           sudo mv "${BINARY}" /usr/local/bin/github-actions-runner-version
 
-      - name: Check version compliance
-        id: check
+      - name: "Example 1: Check latest version (current status)"
+        id: check-latest
+        if: steps.runner-version.outputs.latest != ''
+        run: |
+          VERSION="${{ steps.runner-version.outputs.latest }}"
+          echo "::notice::Demonstrating: Latest version check"
+          echo "Checking version: $VERSION"
+          github-actions-runner-version -c "${VERSION}" --ci
+        continue-on-error: true
+
+      - name: "Example 2: Check previous version (warning + expiry table)"
+        id: check-previous
+        if: steps.runner-version.outputs.previous != ''
+        run: |
+          VERSION="${{ steps.runner-version.outputs.previous }}"
+          echo "::notice::Demonstrating: Previous version with full output"
+          echo "Checking version: $VERSION"
+          github-actions-runner-version -c "${VERSION}" --ci
+        continue-on-error: true
+
+      - name: Check self-hosted runner version
+        id: check-selfhosted
+        if: |
+          steps.runner-version.outputs.version != '' &&
+          steps.runner-version.outputs.latest == ''
         run: |
           VERSION="${{ steps.runner-version.outputs.version }}"
-          echo "Checking version: $VERSION"
-          # GITHUB_TOKEN is automatically detected
+          echo "Checking self-hosted runner version: $VERSION"
           github-actions-runner-version -c "${VERSION}" --ci
         continue-on-error: true
 
       - name: Create issue if expired
-        if: failure()
+        if: |
+          steps.check-selfhosted.conclusion == 'failure' &&
+          steps.runner-version.outputs.latest == ''
         uses: actions/github-script@v7
         with:
           script: |
