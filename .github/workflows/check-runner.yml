@@ -40,19 +40,21 @@ jobs:
             echo "version=$VERSION" >> $GITHUB_OUTPUT
           # GitHub-hosted runner - use previous version for demonstration
           else
-            echo "Running on GitHub-hosted runner - fetching versions for demonstration"
+            echo "Running on GitHub-hosted runner - fetching for demo"
             # Get the two most recent versions from GitHub API
-            VERSIONS=$(curl -s https://api.github.com/repos/actions/runner/releases?per_page=2 | jq -r '.[].tag_name' | sed 's/^v//')
+            API_URL="https://api.github.com/repos/actions/runner/releases"
+            VERSIONS=$(curl -s "${API_URL}?per_page=2" | \
+              jq -r '.[].tag_name' | sed 's/^v//')
             LATEST=$(echo "$VERSIONS" | head -1)
             PREVIOUS=$(echo "$VERSIONS" | tail -1)
 
             echo "Latest runner version: $LATEST"
             echo "Previous runner version: $PREVIOUS"
 
-            # Use previous version for the check to demonstrate warning status and expiry table
-            # This shows visitors the full output: latest version, status, and recent releases table
+            # Check previous version to show warning status and expiry table
+            # Demonstrates: latest version, status, recent releases table
             VERSION="$PREVIOUS"
-            echo "Checking previous version ($VERSION) to demonstrate tool output"
+            echo "Checking previous version ($VERSION) to demo tool output"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
           fi
 
