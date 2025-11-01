@@ -14,6 +14,7 @@
           { "type": "chore", "scope": "cache", "release": "patch" },
           { "type": "docs", "release": false },
           { "type": "chore", "release": false },
+          { "type": "ci", "release": false },
           { "type": "style", "release": false },
           { "type": "test", "release": false },
           { "breaking": true, "release": "major" }
@@ -32,6 +33,7 @@
             { "type": "refactor", "section": "Code Refactoring" },
             { "type": "docs", "section": "Documentation", "hidden": false },
             { "type": "chore", "hidden": true },
+            { "type": "ci", "hidden": true },
             { "type": "style", "hidden": true },
             { "type": "test", "hidden": true }
           ]

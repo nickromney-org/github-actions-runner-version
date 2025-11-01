@@ -12,27 +12,35 @@ name: Check Runner Version
           Runner version to check (optional, defaults to auto-detect)
         required: false
         type: string
+      runs-on:
+        description: >-
+          Runner to use (self-hosted or ubuntu-latest for testing)
+        required: false
+        type: string
+        default: self-hosted
 
 jobs:
   check-version:
-    runs-on: self-hosted
+    runs-on: ${{ inputs.runs-on || 'self-hosted' }}
     steps:
       - name: Get runner version
         id: runner-version
         run: |
-          # Try to auto-detect runner version
-          if [ -f "$RUNNER_HOME/.runner" ]; then
-            VERSION=$(cat "$RUNNER_HOME/.runner" | jq -r '.agentVersion')
-            echo "Detected runner version: $VERSION"
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-          elif [ -n "${{ inputs.runner-version }}" ]; then
+          # If version provided via input, use that
+          if [ -n "${{ inputs.runner-version }}" ]; then
             VERSION="${{ inputs.runner-version }}"
             echo "Using provided version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
+          # Try to auto-detect on self-hosted runner
+          elif [ -f "$RUNNER_HOME/.runner" ]; then
+            VERSION=$(cat "$RUNNER_HOME/.runner" | jq -r '.agentVersion')
+            echo "Detected runner version: $VERSION"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          # GitHub-hosted runner - skip version check
           else
-            echo "::error::Could not detect runner version."
-            echo "::error::Please specify manually."
-            exit 1
+            echo "::notice::Running on GitHub-hosted runner (no self-hosted runner to check)"
+            echo "::notice::This workflow is designed to check self-hosted runner versions"
+            echo "version=" >> $GITHUB_OUTPUT
           fi
 
       - name: Download version checker
@@ -46,6 +54,7 @@ jobs:
 
       - name: Check version compliance
         id: check
+        if: steps.runner-version.outputs.version != ''
         run: |
           VERSION="${{ steps.runner-version.outputs.version }}"
           # GITHUB_TOKEN is automatically detected
