@@ -122,6 +122,7 @@ func (a *Analysis) MarshalJSON() ([]byte, error) {
 type CheckerConfig struct {
 	CriticalAgeDays int
 	MaxAgeDays      int
+	NoCache         bool // If true, bypass embedded cache and always fetch from API
 }
 
 // Validate checks if the configuration is valid

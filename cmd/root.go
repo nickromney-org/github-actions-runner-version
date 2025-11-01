@@ -24,6 +24,7 @@ var (
 	quiet             bool
 	githubToken       string
 	showVersion       bool
+	noCache           bool
 
 	// Version information (set via SetVersionInfo from main)
 	appVersion = "dev"
@@ -76,6 +77,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "quiet output (suppress expiry table)")
 	rootCmd.Flags().StringVarP(&githubToken, "token", "t", os.Getenv("GITHUB_TOKEN"), "GitHub token (or GITHUB_TOKEN env var)")
 	rootCmd.Flags().BoolVar(&showVersion, "version", false, "show version information")
+	rootCmd.Flags().BoolVarP(&noCache, "no-cache", "n", false, "bypass embedded cache and always fetch from GitHub API")
 }
 
 func Execute() error {
@@ -143,6 +145,7 @@ func run(cmd *cobra.Command, args []string) error {
 	checker := version.NewChecker(client, version.CheckerConfig{
 		CriticalAgeDays: criticalAgeDays,
 		MaxAgeDays:      maxAgeDays,
+		NoCache:         noCache,
 	})
 
 	// Run analysis
