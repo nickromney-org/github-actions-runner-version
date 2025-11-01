@@ -26,59 +26,71 @@ A blazingly fast, type-safe CLI tool to check if your GitHub Actions self-hosted
 
 **Option 1: Download Binary**
 
+Download the latest release for your platform from [GitHub Releases](https://github.com/nickromney-org/github-actions-runner-version/releases/latest):
+
 ```bash
-# Download latest release for your platform
-curl -LO https://github.com/yourusername/runner-version-checker/releases/latest/download/runner-version-check-linux-amd64
+# Linux (x64)
+curl -LO https://github.com/nickromney-org/github-actions-runner-version/releases/latest/download/github-actions-runner-version-linux-amd64
+chmod +x github-actions-runner-version-linux-amd64
+sudo mv github-actions-runner-version-linux-amd64 /usr/local/bin/github-actions-runner-version
 
-# Make executable
-chmod +x runner-version-check-linux-amd64
+# macOS (Intel)
+curl -LO https://github.com/nickromney-org/github-actions-runner-version/releases/latest/download/github-actions-runner-version-darwin-amd64
+chmod +x github-actions-runner-version-darwin-amd64
+xattr -d com.apple.quarantine github-actions-runner-version-darwin-amd64  # Remove macOS quarantine
+sudo mv github-actions-runner-version-darwin-amd64 /usr/local/bin/github-actions-runner-version
 
-# Move to PATH
-sudo mv runner-version-check-linux-amd64 /usr/local/bin/runner-version-check
+# macOS (Apple Silicon)
+curl -LO https://github.com/nickromney-org/github-actions-runner-version/releases/latest/download/github-actions-runner-version-darwin-arm64
+chmod +x github-actions-runner-version-darwin-arm64
+xattr -d com.apple.quarantine github-actions-runner-version-darwin-arm64  # Remove macOS quarantine
+sudo mv github-actions-runner-version-darwin-arm64 /usr/local/bin/github-actions-runner-version
 ```
+
+> **Note for macOS users**: Downloaded binaries are not code-signed with an Apple Developer certificate. The `xattr -d com.apple.quarantine` command removes the Gatekeeper quarantine attribute. Alternatively, you can build from source (see Option 2 below).
 
 **Option 2: Build from Source**
 
+Building from source bypasses any code-signing issues and ensures you're running code you've verified:
+
 ```bash
-git clone https://github.com/yourusername/runner-version-checker.git
-cd runner-version-checker
+git clone https://github.com/nickromney-org/github-actions-runner-version.git
+cd github-actions-runner-version
 make build
 
-# Binary will be in bin/runner-version-check
+# Binary will be in bin/github-actions-runner-version
+sudo mv bin/github-actions-runner-version /usr/local/bin/
 ```
 
 **Option 3: Install with Go**
 
 ```bash
-go install github.com/yourusername/runner-version-checker@latest
-```
-
-**Option 4: Docker**
-
-```bash
-docker run ghcr.io/yourusername/runner-version-checker:latest -c 2.327.1
+go install github.com/nickromney-org/github-actions-runner-version@latest
 ```
 
 ### Basic Usage
 
 ```bash
 # Check latest version
-runner-version-check
+github-actions-runner-version
 
 # Check a specific version
-runner-version-check -c 2.327.1
+github-actions-runner-version -c 2.327.1
 
 # Verbose output
-runner-version-check -c 2.327.1 -v
+github-actions-runner-version -c 2.327.1 -v
 
 # JSON output for automation
-runner-version-check -c 2.327.1 --json
+github-actions-runner-version -c 2.327.1 --json
 
 # CI output for GitHub Actions
-runner-version-check -c 2.327.1 --ci
+github-actions-runner-version -c 2.327.1 --ci
+
+# Bypass embedded cache (always fetch from API)
+github-actions-runner-version -c 2.327.1 --no-cache
 
 # With GitHub token (to avoid rate limiting)
-runner-version-check -c 2.327.1 -t $GITHUB_TOKEN
+github-actions-runner-version -c 2.327.1 -t $GITHUB_TOKEN
 ```
 
 ## 📖 Usage Examples
@@ -86,21 +98,21 @@ runner-version-check -c 2.327.1 -t $GITHUB_TOKEN
 ### Example 1: Check Latest Version
 
 ```bash
-$ runner-version-check
+$ github-actions-runner-version
 2.329.0
 ```
 
 Perfect for scripts:
 
 ```bash
-LATEST_VERSION=$(runner-version-check)
+LATEST_VERSION=$(github-actions-runner-version)
 echo "Latest runner version is: $LATEST_VERSION"
 ```
 
 ### Example 2: Check Expired Version
 
 ```bash
-$ runner-version-check -c 2.327.1
+$ github-actions-runner-version -c 2.327.1
 2.329.0
 
 🚨 Version 2.327.1 (25 Jul 2025) EXPIRED 12 Sep 2025: Update to v2.329.0 (Released 14 Oct 2025)
@@ -117,7 +129,7 @@ Version    Release Date   Expiry Date    Status
 ### Example 2a: Quiet Output (suppress expiry table)
 
 ```bash
-$ runner-version-check -c 2.327.1 -q
+$ github-actions-runner-version -c 2.327.1 -q
 2.329.0
 
 🚨 Version 2.327.1 (25 Jul 2025) EXPIRED 12 Sep 2025: Update to v2.329.0 (Released 14 Oct 2025)
@@ -126,7 +138,7 @@ $ runner-version-check -c 2.327.1 -q
 ### Example 3: Verbose Output
 
 ```bash
-$ runner-version-check -c 2.328.0 -v
+$ github-actions-runner-version -c 2.328.0 -v
 2.329.0
 
 ⚠️  Version 2.328.0 Warning: 1 release behind
@@ -154,7 +166,7 @@ $ runner-version-check -c 2.328.0 -v
 ### Example 4: JSON Output
 
 ```bash
-$ runner-version-check -c 2.327.1 --json
+$ github-actions-runner-version -c 2.327.1 --json
 {
   "latest_version": "2.329.0",
   "comparison_version": "2.327.1",
@@ -175,7 +187,7 @@ $ runner-version-check -c 2.327.1 --json
 ### Example 5: CI/GitHub Actions Output
 
 ```bash
-$ runner-version-check -c 2.327.1 --ci
+$ github-actions-runner-version -c 2.327.1 --ci
 2.329.0
 
 ::group::📊 Runner Version Check
@@ -200,7 +212,7 @@ Status: Expired
 
 ```bash
 Usage:
-  runner-version-check [flags]
+  github-actions-runner-version [flags]
 
 Flags:
   -c, --compare string      version to compare against (e.g., 2.327.1)
@@ -209,8 +221,11 @@ Flags:
   -v, --verbose            verbose output
       --json               output as JSON
       --ci                 format output for CI/GitHub Actions
+  -q, --quiet              quiet output (suppress expiry table)
+  -n, --no-cache           bypass embedded cache and always fetch from GitHub API
   -t, --token string       GitHub token (or GITHUB_TOKEN env var)
-  -h, --help              help for runner-version-check
+      --version            show version information
+  -h, --help              help for github-actions-runner-version
 ```
 
 ## 🔄 Using in GitHub Actions
@@ -241,7 +256,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Check version
-        run: runner-version-check -c ${{ steps.version.outputs.version }} --ci
+        run: github-actions-runner-version -c ${{ steps.version.outputs.version }} --ci
 ```
 
 See [.github/workflows/check-runner.yml](.github/workflows/check-runner.yml) for a complete example with:
@@ -290,40 +305,37 @@ make clean
 
 ```bash
 # macOS (Intel)
-GOOS=darwin GOARCH=amd64 go build -o bin/runner-version-check-darwin-amd64
+GOOS=darwin GOARCH=amd64 go build -o bin/github-actions-runner-version-darwin-amd64
 
 # macOS (Apple Silicon)
-GOOS=darwin GOARCH=arm64 go build -o bin/runner-version-check-darwin-arm64
+GOOS=darwin GOARCH=arm64 go build -o bin/github-actions-runner-version-darwin-arm64
 
 # Linux (x64)
-GOOS=linux GOARCH=amd64 go build -o bin/runner-version-check-linux-amd64
+GOOS=linux GOARCH=amd64 go build -o bin/github-actions-runner-version-linux-amd64
 
 # Linux (ARM64)
-GOOS=linux GOARCH=arm64 go build -o bin/runner-version-check-linux-arm64
+GOOS=linux GOARCH=arm64 go build -o bin/github-actions-runner-version-linux-arm64
 
 # Windows
-GOOS=windows GOARCH=amd64 go build -o bin/runner-version-check-windows-amd64.exe
+GOOS=windows GOARCH=amd64 go build -o bin/github-actions-runner-version-windows-amd64.exe
 ```
 
 ## 🐳 Docker Usage
 
-### Build Docker Image
+Docker images are not automatically published with releases, but you can build your own:
 
 ```bash
-docker build -t runner-version-check:latest .
-```
+# Build Docker image locally
+docker build -t github-actions-runner-version:latest .
 
-### Run in Docker
-
-```bash
-# Basic usage
-docker run --rm runner-version-check:latest
+# Run in Docker
+docker run --rm github-actions-runner-version:latest
 
 # With comparison version
-docker run --rm runner-version-check:latest -c 2.327.1
+docker run --rm github-actions-runner-version:latest -c 2.327.1
 
 # With GitHub token
-docker run --rm -e GITHUB_TOKEN=$GITHUB_TOKEN runner-version-check:latest -c 2.327.1 -v
+docker run --rm -e GITHUB_TOKEN=$GITHUB_TOKEN github-actions-runner-version:latest -c 2.327.1 -v
 ```
 
 ## 🔧 Integration Examples
@@ -334,7 +346,7 @@ docker run --rm -e GITHUB_TOKEN=$GITHUB_TOKEN runner-version-check:latest -c 2.3
 - name: Check runner version
   run: |
     VERSION=$(cat $RUNNER_HOME/.runner | jq -r '.agentVersion')
-    runner-version-check -c "$VERSION" --ci
+    github-actions-runner-version -c "$VERSION" --ci
 ```
 
 This gives you:
@@ -353,7 +365,7 @@ See [CI-OUTPUT.md](CI-OUTPUT.md) for examples of what the output looks like.
 set -e
 
 VERSION=$(cat /opt/actions-runner/.runner | jq -r '.agentVersion')
-OUTPUT=$(runner-version-check -c "$VERSION" --json)
+OUTPUT=$(github-actions-runner-version -c "$VERSION" --json)
 STATUS=$(echo "$OUTPUT" | jq -r '.status')
 
 if [ "$STATUS" = "expired" ]; then
@@ -375,7 +387,7 @@ For non-GitHub CI systems, use JSON output:
 #!/bin/bash
 # Jenkins, GitLab CI, CircleCI, etc.
 
-OUTPUT=$(runner-version-check -c "$VERSION" --json)
+OUTPUT=$(github-actions-runner-version -c "$VERSION" --json)
 IS_EXPIRED=$(echo "$OUTPUT" | jq -r '.is_expired')
 
 if [ "$IS_EXPIRED" = "true" ]; then
@@ -392,7 +404,7 @@ If you need metrics export, you can parse JSON output:
 #!/bin/bash
 # Export metrics for Prometheus node_exporter textfile collector
 
-OUTPUT=$(runner-version-check -c "$RUNNER_VERSION" --json)
+OUTPUT=$(github-actions-runner-version -c "$RUNNER_VERSION" --json)
 
 cat > /var/lib/node_exporter/textfile/runner.prom <<EOF
 # HELP runner_is_expired Whether the runner version is expired
