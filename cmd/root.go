@@ -151,6 +151,11 @@ func run(cmd *cobra.Command, args []string) error {
 	// Run analysis
 	analysis, err := checker.Analyse(cmd.Context(), comparisonVersion)
 	if err != nil {
+		// For JSON/CI output, return error immediately without formatting
+		if jsonOutput || ciOutput {
+			return fmt.Errorf("%v", err)
+		}
+
 		// If invalid semantic version format, show helpful context
 		if strings.Contains(err.Error(), "invalid comparison version") {
 			red.Printf("\n❌ Error: %v\n\n", err)
