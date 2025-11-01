@@ -9,15 +9,17 @@ name: Check Runner Version
     inputs:
       runner-version:
         description: >-
-          Runner version to check (optional, defaults to auto-detect)
+          Runner version to check (optional, defaults to auto-detect or latest)
         required: false
         type: string
       runs-on:
-        description: >-
-          Runner to use (self-hosted or ubuntu-latest for testing)
-        required: false
-        type: string
-        default: self-hosted
+        description: Runner to use
+        required: true
+        type: choice
+        options:
+          - ubuntu-latest
+          - self-hosted
+        default: ubuntu-latest
 
 jobs:
   check-version:
@@ -34,13 +36,26 @@ jobs:
           # Try to auto-detect on self-hosted runner
           elif [ -f "$RUNNER_HOME/.runner" ]; then
             VERSION=$(cat "$RUNNER_HOME/.runner" | jq -r '.agentVersion')
-            echo "Detected runner version: $VERSION"
+            echo "Detected self-hosted runner version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
-          # GitHub-hosted runner - skip version check
+          # GitHub-hosted runner - use previous version for demonstration
           else
-            echo "::notice::Running on GitHub-hosted runner (no self-hosted runner to check)"
-            echo "::notice::This workflow is designed to check self-hosted runner versions"
-            echo "version=" >> $GITHUB_OUTPUT
+            echo "Running on GitHub-hosted runner - fetching for demo"
+            # Get the two most recent versions from GitHub API
+            API_URL="https://api.github.com/repos/actions/runner/releases"
+            VERSIONS=$(curl -s "${API_URL}?per_page=2" | \
+              jq -r '.[].tag_name' | sed 's/^v//')
+            LATEST=$(echo "$VERSIONS" | head -1)
+            PREVIOUS=$(echo "$VERSIONS" | tail -1)
+
+            echo "Latest runner version: $LATEST"
+            echo "Previous runner version: $PREVIOUS"
+
+            # Check previous version to show warning status and expiry table
+            # Demonstrates: latest version, status, recent releases table
+            VERSION="$PREVIOUS"
+            echo "Checking previous version ($VERSION) to demo tool output"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
           fi
 
       - name: Download version checker
@@ -54,9 +69,9 @@ jobs:
 
       - name: Check version compliance
         id: check
-        if: steps.runner-version.outputs.version != ''
         run: |
           VERSION="${{ steps.runner-version.outputs.version }}"
+          echo "Checking version: $VERSION"
           # GITHUB_TOKEN is automatically detected
           github-actions-runner-version -c "${VERSION}" --ci
         continue-on-error: true
