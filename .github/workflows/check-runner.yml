@@ -38,17 +38,21 @@ jobs:
             VERSION=$(cat "$RUNNER_HOME/.runner" | jq -r '.agentVersion')
             echo "Detected self-hosted runner version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
-          # GitHub-hosted runner - fetch latest version from API and use previous version for demo
+          # GitHub-hosted runner - use previous version for demonstration
           else
-            echo "Running on GitHub-hosted runner - fetching version for demonstration"
-            # Get latest version from GitHub API
-            LATEST=$(curl -s https://api.github.com/repos/actions/runner/releases/latest | jq -r '.tag_name' | sed 's/^v//')
-            echo "Latest runner version: $LATEST"
+            echo "Running on GitHub-hosted runner - fetching versions for demonstration"
+            # Get the two most recent versions from GitHub API
+            VERSIONS=$(curl -s https://api.github.com/repos/actions/runner/releases?per_page=2 | jq -r '.[].tag_name' | sed 's/^v//')
+            LATEST=$(echo "$VERSIONS" | head -1)
+            PREVIOUS=$(echo "$VERSIONS" | tail -1)
 
-            # Use latest version for the check (GitHub-hosted runners are always current)
-            # This demonstrates the tool showing a "current" status
-            VERSION="$LATEST"
-            echo "Checking GitHub-hosted runner against latest version: $VERSION"
+            echo "Latest runner version: $LATEST"
+            echo "Previous runner version: $PREVIOUS"
+
+            # Use previous version for the check to demonstrate warning status and expiry table
+            # This shows visitors the full output: latest version, status, and recent releases table
+            VERSION="$PREVIOUS"
+            echo "Checking previous version ($VERSION) to demonstrate tool output"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
           fi
 
