@@ -62,23 +62,28 @@ var rootCmd = &cobra.Command{
 
 Supports multiple repositories with both time-based (days) and version-based
 (semantic versioning) policies. Defaults to GitHub Actions runner with 30-day policy.`,
-	Example: `  # Check latest GitHub Actions runner version (default)
+	Example: `  # Check latest GitHub Actions runner version (default, days-based policy)
   github-release-version-checker
+  github-release-version-checker -c 2.328.0
 
-  # Check a specific runner version
-  github-release-version-checker -c 2.327.1
+  # Kubernetes (version-based: 3 minor versions supported)
+  github-release-version-checker --repo kubernetes -c 1.31.12
+  github-release-version-checker --repo kubernetes/kubernetes -c 1.28.0
 
-  # Check Kubernetes version (version-based policy)
-  github-release-version-checker --repo kubernetes -c 1.28.0
+  # Pulumi (version-based policy)
+  github-release-version-checker --repo pulumi/pulumi -c 3.204.0
 
-  # Check with custom repository
-  github-release-version-checker --repo pulumi/pulumi -c 3.95.0
+  # HashiCorp Terraform (version-based policy)
+  github-release-version-checker --repo hashicorp/terraform -c 1.11.1
 
-  # Use custom cache file
-  github-release-version-checker --repo kubernetes --cache /path/to/cache.json
+  # Arkade (version-based policy)
+  github-release-version-checker --repo alexellis/arkade -c 0.11.50
 
   # JSON output for automation
-  github-release-version-checker -c 2.327.1 --json`,
+  github-release-version-checker -c 2.328.0 --json
+
+  # CI mode for GitHub Actions
+  github-release-version-checker --repo kubernetes -c 1.28.0 --ci`,
 	RunE: run,
 }
 
@@ -622,17 +627,32 @@ func printStatus(analysis *version.Analysis) {
 			comparisonDate = fmt.Sprintf(" (%s)", formatUKDate(*analysis.ComparisonReleasedAt))
 		}
 
-		expiryInfo := ""
-		if analysis.FirstNewerReleaseDate != nil {
-			expiryDate := analysis.FirstNewerReleaseDate.AddDate(0, 0, 30)
+		// Check if using version-based policy
+		isVersionPolicy := analysis.PolicyType == "versions"
 
+		expiryInfo := ""
+		if isVersionPolicy {
+			// For version-based policies, show version skew info
 			if analysis.IsExpired {
-				expiryInfo = fmt.Sprintf(" EXPIRED %s", formatUKDate(expiryDate))
+				expiryInfo = fmt.Sprintf(" UNSUPPORTED (%d minor versions behind)", analysis.MinorVersionsBehind)
 			} else if analysis.IsCritical {
-				daysLeft := 30 - analysis.DaysSinceUpdate
-				expiryInfo = fmt.Sprintf(" EXPIRES %s (%d days)", formatUKDate(expiryDate), daysLeft)
-			} else {
-				expiryInfo = fmt.Sprintf(" expires %s", formatUKDate(expiryDate))
+				expiryInfo = fmt.Sprintf(" CRITICAL (%d minor versions behind)", analysis.MinorVersionsBehind)
+			} else if analysis.MinorVersionsBehind > 0 {
+				expiryInfo = fmt.Sprintf(" (%d minor versions behind)", analysis.MinorVersionsBehind)
+			}
+		} else {
+			// For days-based policies, show expiry dates
+			if analysis.FirstNewerReleaseDate != nil {
+				expiryDate := analysis.FirstNewerReleaseDate.AddDate(0, 0, 30)
+
+				if analysis.IsExpired {
+					expiryInfo = fmt.Sprintf(" EXPIRED %s", formatUKDate(expiryDate))
+				} else if analysis.IsCritical {
+					daysLeft := 30 - analysis.DaysSinceUpdate
+					expiryInfo = fmt.Sprintf(" EXPIRES %s (%d days)", formatUKDate(expiryDate), daysLeft)
+				} else {
+					expiryInfo = fmt.Sprintf(" expires %s", formatUKDate(expiryDate))
+				}
 			}
 		}
 
@@ -661,10 +681,18 @@ func printExpiryTable(analysis *version.Analysis, phantomVersionStr string) {
 		return
 	}
 
+	isVersionPolicy := analysis.PolicyType == "versions"
+
 	fmt.Println()
-	cyan.Println("📅 Release Expiry Timeline")
-	cyan.Println("─────────────────────────────────────────────────────")
-	fmt.Printf("%-10s %-14s %-14s %s\n", "Version", "Release Date", "Expiry Date", "Status")
+	if isVersionPolicy {
+		cyan.Println("📋 Version Release History")
+		cyan.Println("─────────────────────────────────────────────────────")
+		fmt.Printf("%-12s %-14s %-16s %s\n", "Version", "Release Date", "Age", "Status")
+	} else {
+		cyan.Println("📅 Release Expiry Timeline")
+		cyan.Println("─────────────────────────────────────────────────────")
+		fmt.Printf("%-10s %-14s %-14s %s\n", "Version", "Release Date", "Expiry Date", "Status")
+	}
 
 	// Parse phantom version if provided
 	var phantomVersion *semver.Version
@@ -680,7 +708,11 @@ func printExpiryTable(analysis *version.Analysis, phantomVersionStr string) {
 		if phantomVersion != nil && !phantomPrinted && phantomVersion.LessThan(release.Version) {
 			// Print phantom version row
 			bold := colour.New(colour.Bold)
-			bold.Printf("%-10s %-14s %-14s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
+			if isVersionPolicy {
+				bold.Printf("%-12s %-14s %-16s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
+			} else {
+				bold.Printf("%-10s %-14s %-14s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
+			}
 			phantomPrinted = true
 		}
 
@@ -690,18 +722,67 @@ func printExpiryTable(analysis *version.Analysis, phantomVersionStr string) {
 		var expiresStr string
 		var statusStr string
 
-		if release.IsLatest {
-			expiresStr = "-"
+		if isVersionPolicy {
+			// For version-based policies, show version skew info
 			daysAgo := int(time.Since(release.ReleasedAt).Hours() / 24)
-			statusStr = fmt.Sprintf("✅ Latest (%s)", formatDaysAgo(daysAgo))
-		} else if release.ExpiresAt != nil {
-			expiresStr = formatUKDate(*release.ExpiresAt)
+			expiresStr = formatDaysAgo(daysAgo)
 
-			if release.IsExpired {
-				daysExpired := -release.DaysUntilExpiry
-				statusStr = fmt.Sprintf("❌ Expired %s", formatDaysAgo(daysExpired))
+			if release.IsLatest {
+				// Check if latest is also a .0 release
+				if release.Version.Patch() == 0 {
+					statusStr = "✅ Latest  ← Minor release"
+				} else {
+					statusStr = "✅ Latest"
+				}
 			} else {
-				statusStr = fmt.Sprintf("✅ Valid (%s left)", formatDaysInFuture(release.DaysUntilExpiry))
+				// Check if this is a .0 release (first release of a minor version)
+				isMinorRelease := release.Version.Patch() == 0
+
+				// Calculate minor version difference from LATEST version
+				minorDiff := int(analysis.LatestVersion.Minor()) - int(release.Version.Minor())
+				if release.Version.Major() == analysis.LatestVersion.Major() {
+					if minorDiff > 0 {
+						if isMinorRelease {
+							statusStr = fmt.Sprintf("-%d minor  ← Minor release", minorDiff)
+						} else {
+							statusStr = fmt.Sprintf("-%d minor", minorDiff)
+						}
+					} else if minorDiff == 0 {
+						// Same minor, check patch difference
+						patchDiff := int(analysis.LatestVersion.Patch()) - int(release.Version.Patch())
+						if patchDiff > 0 {
+							if isMinorRelease {
+								statusStr = fmt.Sprintf("-%d patch  ← Minor release", patchDiff)
+							} else {
+								statusStr = fmt.Sprintf("-%d patch", patchDiff)
+							}
+						} else {
+							statusStr = "Same as latest"
+						}
+					} else {
+						// Release is newer than latest? Shouldn't happen but handle it
+						statusStr = ""
+					}
+				} else {
+					// Different major version
+					statusStr = fmt.Sprintf("v%d", release.Version.Major())
+				}
+			}
+		} else {
+			// For days-based policies, show expiry info
+			if release.IsLatest {
+				expiresStr = "-"
+				daysAgo := int(time.Since(release.ReleasedAt).Hours() / 24)
+				statusStr = fmt.Sprintf("✅ Latest (%s)", formatDaysAgo(daysAgo))
+			} else if release.ExpiresAt != nil {
+				expiresStr = formatUKDate(*release.ExpiresAt)
+
+				if release.IsExpired {
+					daysExpired := -release.DaysUntilExpiry
+					statusStr = fmt.Sprintf("❌ Expired %s", formatDaysAgo(daysExpired))
+				} else {
+					statusStr = fmt.Sprintf("✅ Valid (%s left)", formatDaysInFuture(release.DaysUntilExpiry))
+				}
 			}
 		}
 
@@ -712,16 +793,28 @@ func printExpiryTable(analysis *version.Analysis, phantomVersionStr string) {
 			arrow = "  ← Your version"
 			// Format the whole line in bold
 			bold := colour.New(colour.Bold)
-			bold.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+			if isVersionPolicy {
+				bold.Printf("%-12s %-14s %-16s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+			} else {
+				bold.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+			}
 		} else {
-			fmt.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+			if isVersionPolicy {
+				fmt.Printf("%-12s %-14s %-16s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+			} else {
+				fmt.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+			}
 		}
 
 		// Check if phantom should be printed after this (if it's the last release and phantom is greater)
 		if phantomVersion != nil && !phantomPrinted && i == len(analysis.RecentReleases)-1 {
 			// Print phantom version row
 			bold := colour.New(colour.Bold)
-			bold.Printf("%-10s %-14s %-14s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
+			if isVersionPolicy {
+				bold.Printf("%-12s %-14s %-16s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
+			} else {
+				bold.Printf("%-10s %-14s %-14s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
+			}
 			phantomPrinted = true
 		}
 	}

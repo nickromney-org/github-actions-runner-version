@@ -70,27 +70,59 @@ go install github.com/nickromney-org/github-actions-runner-version@latest
 
 ### Basic Usage
 
+**GitHub Actions Runner (default - days-based policy)**
+
 ```bash
 # Check latest version
-github-actions-runner-version
+github-release-version-checker
 
 # Check a specific version
-github-release-version-checker -c 2.327.1
+github-release-version-checker -c 2.328.0
 
 # Verbose output
-github-release-version-checker -c 2.327.1 -v
+github-release-version-checker -c 2.328.0 -v
 
 # JSON output for automation
-github-release-version-checker -c 2.327.1 --json
+github-release-version-checker -c 2.328.0 --json
 
 # CI output for GitHub Actions
-github-release-version-checker -c 2.327.1 --ci
+github-release-version-checker -c 2.328.0 --ci
+```
 
+**Kubernetes (version-based policy: 3 minor versions)**
+
+```bash
+# Short form (looks up kubernetes/kubernetes)
+github-release-version-checker --repo kubernetes -c 1.31.12
+
+# Full repository path
+github-release-version-checker --repo kubernetes/kubernetes -c 1.28.0
+```
+
+**Other Popular Tools**
+
+```bash
+# Pulumi (version-based policy)
+github-release-version-checker --repo pulumi/pulumi -c 3.204.0
+
+# HashiCorp Terraform (version-based policy)
+github-release-version-checker --repo hashicorp/terraform -c 1.11.1
+
+# Arkade (version-based policy)
+github-release-version-checker --repo alexellis/arkade -c 0.11.50
+```
+
+**Advanced Options**
+
+```bash
 # Bypass embedded cache (always fetch from API)
-github-release-version-checker -c 2.327.1 --no-cache
+github-release-version-checker -c 2.328.0 --no-cache
 
 # With GitHub token (to avoid rate limiting)
-github-release-version-checker -c 2.327.1 -t $GITHUB_TOKEN
+github-release-version-checker -c 2.328.0 -t $GITHUB_TOKEN
+
+# Quiet mode (suppress timeline table)
+github-release-version-checker -c 2.328.0 -q
 ```
 
 ## 📖 Usage Examples
