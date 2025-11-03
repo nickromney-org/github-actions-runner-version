@@ -1,4 +1,4 @@
-package version
+package checker
 
 import (
 	"context"
@@ -8,24 +8,25 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/nickromney-org/github-actions-runner-version/internal/data"
 	"github.com/nickromney-org/github-actions-runner-version/pkg/policy"
+	"github.com/nickromney-org/github-actions-runner-version/pkg/types"
 )
 
 // GitHubClient defines the interface for fetching releases
 type GitHubClient interface {
-	GetLatestRelease(ctx context.Context) (*Release, error)
-	GetAllReleases(ctx context.Context) ([]Release, error)
-	GetRecentReleases(ctx context.Context, count int) ([]Release, error)
+	GetLatestRelease(ctx context.Context) (*types.Release, error)
+	GetAllReleases(ctx context.Context) ([]types.Release, error)
+	GetRecentReleases(ctx context.Context, count int) ([]types.Release, error)
 }
 
 // Checker performs version analysis
 type Checker struct {
 	client GitHubClient
-	config CheckerConfig
+	config Config
 	policy policy.VersionPolicy // Optional: if set, overrides config-based logic
 }
 
 // NewChecker creates a new version checker
-func NewChecker(client GitHubClient, config CheckerConfig) *Checker {
+func NewChecker(client GitHubClient, config Config) *Checker {
 	return &Checker{
 		client: client,
 		config: config,
@@ -34,7 +35,7 @@ func NewChecker(client GitHubClient, config CheckerConfig) *Checker {
 }
 
 // NewCheckerWithPolicy creates a new version checker with a custom policy
-func NewCheckerWithPolicy(client GitHubClient, config CheckerConfig, pol policy.VersionPolicy) *Checker {
+func NewCheckerWithPolicy(client GitHubClient, config Config, pol policy.VersionPolicy) *Checker {
 	return &Checker{
 		client: client,
 		config: config,
@@ -43,7 +44,7 @@ func NewCheckerWithPolicy(client GitHubClient, config CheckerConfig, pol policy.
 }
 
 // versionExists checks if a version exists in the releases list
-func (c *Checker) versionExists(releases []Release, version *semver.Version) bool {
+func (c *Checker) versionExists(releases []types.Release, version *semver.Version) bool {
 	for _, release := range releases {
 		if release.Version.Equal(version) {
 			return true
@@ -53,10 +54,10 @@ func (c *Checker) versionExists(releases []Release, version *semver.Version) boo
 }
 
 // mergeReleases combines embedded and recent releases, deduplicating by version
-func (c *Checker) mergeReleases(embedded, recent []Release) []Release {
+func (c *Checker) mergeReleases(embedded, recent []types.Release) []types.Release {
 	// Use map to deduplicate by version
 	seen := make(map[string]bool)
-	var merged []Release
+	var merged []types.Release
 
 	// Add recent first (they're authoritative)
 	for _, r := range recent {
@@ -87,7 +88,7 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 	}
 
 	// Determine which dataset to use
-	var allReleases []Release
+	var allReleases []types.Release
 	var err error
 
 	if c.config.NoCache {
@@ -104,10 +105,10 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 			return nil, fmt.Errorf("failed to load embedded releases: %w", err)
 		}
 
-		// Convert data.Release to version.Release
-		embeddedReleases := make([]Release, len(embeddedData))
+		// Convert data.Release to types.Release
+		embeddedReleases := make([]types.Release, len(embeddedData))
 		for i, r := range embeddedData {
-			embeddedReleases[i] = Release{
+			embeddedReleases[i] = types.Release{
 				Version:     r.Version,
 				PublishedAt: r.PublishedAt,
 				URL:         r.URL,
@@ -249,20 +250,20 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 
 // CalculateRecentReleases returns releases for the expiry timeline table
 // Shows all releases from last 90 days, or minimum 4 releases
-func (c *Checker) CalculateRecentReleases(allReleases []Release, comparisonVersion *semver.Version, latestVersion *semver.Version) []ReleaseExpiry {
+func (c *Checker) CalculateRecentReleases(allReleases []types.Release, comparisonVersion *semver.Version, latestVersion *semver.Version) []ReleaseExpiry {
 	now := time.Now()
 
 	// For version-based policies, show recent minor versions instead of time-based window
 	isVersionPolicy := c.policy != nil && c.policy.Type() == "versions"
 
-	var recentReleases []Release
+	var recentReleases []types.Release
 
 	if isVersionPolicy {
 		// For version-based policies, show unique minor versions from comparison to latest
 		majorVersion := latestVersion.Major()
 
 		// Sort all releases by version (newest first)
-		sorted := make([]Release, len(allReleases))
+		sorted := make([]types.Release, len(allReleases))
 		copy(sorted, allReleases)
 		for i := 0; i < len(sorted)-1; i++ {
 			for j := i + 1; j < len(sorted); j++ {
@@ -289,7 +290,7 @@ func (c *Checker) CalculateRecentReleases(allReleases []Release, comparisonVersi
 
 		// Collect releases to show:
 		// For each minor version, collect first and latest patch releases
-		minorReleases := make(map[string][]Release)
+		minorReleases := make(map[string][]types.Release)
 
 		for _, release := range sorted {
 			if release.Version.Major() == majorVersion {
@@ -360,7 +361,7 @@ func (c *Checker) CalculateRecentReleases(allReleases []Release, comparisonVersi
 		// Ensure minimum 4 releases
 		if len(recentReleases) < 4 && len(allReleases) >= 4 {
 			// Sort all releases by date (newest first)
-			sorted := make([]Release, len(allReleases))
+			sorted := make([]types.Release, len(allReleases))
 			copy(sorted, allReleases)
 			for i := 0; i < len(sorted)-1; i++ {
 				for j := i + 1; j < len(sorted); j++ {
@@ -432,8 +433,8 @@ func (c *Checker) CalculateRecentReleases(allReleases []Release, comparisonVersi
 }
 
 // findNewerReleases returns releases newer than the comparison version, sorted oldest-first
-func (c *Checker) findNewerReleases(releases []Release, comparisonVersion *semver.Version) []Release {
-	var newer []Release
+func (c *Checker) findNewerReleases(releases []types.Release, comparisonVersion *semver.Version) []types.Release {
+	var newer []types.Release
 
 	for _, release := range releases {
 		if release.Version.GreaterThan(comparisonVersion) {
@@ -546,7 +547,7 @@ func daysBetween(start, end time.Time) int {
 }
 
 // FindLatestRelease finds the release with the highest version number
-func FindLatestRelease(releases []Release) *Release {
+func FindLatestRelease(releases []types.Release) *types.Release {
 	if len(releases) == 0 {
 		return nil
 	}
@@ -563,7 +564,7 @@ func FindLatestRelease(releases []Release) *Release {
 
 // isEmbeddedCurrent checks if embedded data contains the latest release
 // by verifying the latest embedded version is in the recent 5 releases
-func (c *Checker) isEmbeddedCurrent(embedded, recent []Release) bool {
+func (c *Checker) isEmbeddedCurrent(embedded, recent []types.Release) bool {
 	if len(embedded) == 0 || len(recent) == 0 {
 		return false
 	}

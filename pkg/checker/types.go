@@ -1,4 +1,4 @@
-package version
+package checker
 
 import (
 	"encoding/json"
@@ -119,15 +119,15 @@ func (a *Analysis) MarshalJSON() ([]byte, error) {
 	}, "", "  ")
 }
 
-// CheckerConfig holds configuration for the version checker
-type CheckerConfig struct {
+// Config holds configuration for the version checker
+type Config struct {
 	CriticalAgeDays int
 	MaxAgeDays      int
 	NoCache         bool // If true, bypass embedded cache and always fetch from API
 }
 
 // Validate checks if the configuration is valid
-func (c CheckerConfig) Validate() error {
+func (c Config) Validate() error {
 	if c.CriticalAgeDays < 0 {
 		return fmt.Errorf("critical_age_days must be non-negative")
 	}

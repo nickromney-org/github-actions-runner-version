@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/nickromney-org/github-actions-runner-version/internal/version"
+	"github.com/nickromney-org/github-actions-runner-version/pkg/checker"
 )
 
 // Test helpers
@@ -23,12 +23,12 @@ func mustParseVersion(v string) *semver.Version {
 func TestOutputJSON(t *testing.T) {
 	tests := []struct {
 		name     string
-		analysis *version.Analysis
+		analysis *checker.Analysis
 		wantKeys []string
 	}{
 		{
 			name: "current version",
-			analysis: &version.Analysis{
+			analysis: &checker.Analysis{
 				LatestVersion:     mustParseVersion("2.329.0"),
 				ComparisonVersion: mustParseVersion("2.329.0"),
 				IsLatest:          true,
@@ -50,7 +50,7 @@ func TestOutputJSON(t *testing.T) {
 		},
 		{
 			name: "expired version",
-			analysis: &version.Analysis{
+			analysis: &checker.Analysis{
 				LatestVersion:     mustParseVersion("2.329.0"),
 				ComparisonVersion: mustParseVersion("2.327.1"),
 				IsLatest:          false,
@@ -131,14 +131,14 @@ func TestOutputErrorJSON(t *testing.T) {
 func TestGetStatusText(t *testing.T) {
 	tests := []struct {
 		name   string
-		status version.Status
+		status checker.Status
 		want   string
 	}{
-		{"current", version.StatusCurrent, "Current"},
-		{"warning", version.StatusWarning, "Behind"},
-		{"critical", version.StatusCritical, "Critical"},
-		{"expired", version.StatusExpired, "Expired"},
-		{"invalid", version.Status("invalid"), "Unknown"},
+		{"current", checker.StatusCurrent, "Current"},
+		{"warning", checker.StatusWarning, "Behind"},
+		{"critical", checker.StatusCritical, "Critical"},
+		{"expired", checker.StatusExpired, "Expired"},
+		{"invalid", checker.Status("invalid"), "Unknown"},
 	}
 
 	for _, tt := range tests {
@@ -155,14 +155,14 @@ func TestGetStatusText(t *testing.T) {
 func TestGetStatusIcon(t *testing.T) {
 	tests := []struct {
 		name   string
-		status version.Status
+		status checker.Status
 		want   string
 	}{
-		{"current", version.StatusCurrent, "✅"},
-		{"warning", version.StatusWarning, "⚠️ "},
-		{"critical", version.StatusCritical, "🔶"},
-		{"expired", version.StatusExpired, "🚨"},
-		{"invalid", version.Status("invalid"), "ℹ️ "},
+		{"current", checker.StatusCurrent, "✅"},
+		{"warning", checker.StatusWarning, "⚠️ "},
+		{"critical", checker.StatusCritical, "🔶"},
+		{"expired", checker.StatusExpired, "🚨"},
+		{"invalid", checker.Status("invalid"), "ℹ️ "},
 	}
 
 	for _, tt := range tests {
@@ -209,12 +209,12 @@ func TestOutputCI(t *testing.T) {
 	now := time.Now()
 	tests := []struct {
 		name         string
-		analysis     *version.Analysis
+		analysis     *checker.Analysis
 		wantContains []string
 	}{
 		{
 			name: "current version",
-			analysis: &version.Analysis{
+			analysis: &checker.Analysis{
 				LatestVersion:        mustParseVersion("2.329.0"),
 				ComparisonVersion:    mustParseVersion("2.329.0"),
 				IsLatest:             true,
@@ -228,7 +228,7 @@ func TestOutputCI(t *testing.T) {
 		},
 		{
 			name: "warning status",
-			analysis: &version.Analysis{
+			analysis: &checker.Analysis{
 				LatestVersion:         mustParseVersion("2.329.0"),
 				ComparisonVersion:     mustParseVersion("2.328.0"),
 				IsLatest:              false,
@@ -248,7 +248,7 @@ func TestOutputCI(t *testing.T) {
 		},
 		{
 			name: "expired status",
-			analysis: &version.Analysis{
+			analysis: &checker.Analysis{
 				LatestVersion:         mustParseVersion("2.329.0"),
 				ComparisonVersion:     mustParseVersion("2.327.0"),
 				IsLatest:              false,
@@ -285,12 +285,12 @@ func TestOutputTerminal(t *testing.T) {
 	now := time.Now()
 	tests := []struct {
 		name     string
-		analysis *version.Analysis
+		analysis *checker.Analysis
 		wantErr  bool
 	}{
 		{
 			name: "current version",
-			analysis: &version.Analysis{
+			analysis: &checker.Analysis{
 				LatestVersion:        mustParseVersion("2.329.0"),
 				ComparisonVersion:    mustParseVersion("2.329.0"),
 				IsLatest:             true,
@@ -300,7 +300,7 @@ func TestOutputTerminal(t *testing.T) {
 		},
 		{
 			name: "expired version",
-			analysis: &version.Analysis{
+			analysis: &checker.Analysis{
 				LatestVersion:         mustParseVersion("2.329.0"),
 				ComparisonVersion:     mustParseVersion("2.327.0"),
 				IsLatest:              false,
@@ -333,14 +333,14 @@ func TestStatusTransitions(t *testing.T) {
 		daysOld        int
 		criticalDays   int
 		maxDays        int
-		expectedStatus version.Status
+		expectedStatus checker.Status
 	}{
-		{"very recent", 0, 12, 30, version.StatusCurrent},
-		{"within warning", 5, 12, 30, version.StatusWarning},
-		{"at critical threshold", 12, 12, 30, version.StatusCritical},
-		{"within critical", 20, 12, 30, version.StatusCritical},
-		{"at expiry threshold", 30, 12, 30, version.StatusExpired},
-		{"past expiry", 35, 12, 30, version.StatusExpired},
+		{"very recent", 0, 12, 30, checker.StatusCurrent},
+		{"within warning", 5, 12, 30, checker.StatusWarning},
+		{"at critical threshold", 12, 12, 30, checker.StatusCritical},
+		{"within critical", 20, 12, 30, checker.StatusCritical},
+		{"at expiry threshold", 30, 12, 30, checker.StatusExpired},
+		{"past expiry", 35, 12, 30, checker.StatusExpired},
 	}
 
 	for _, tt := range tests {
@@ -364,7 +364,7 @@ func TestStatusTransitions(t *testing.T) {
 // TestJSONOutputIntegrity tests that JSON output is valid and parseable
 func TestJSONOutputIntegrity(t *testing.T) {
 	now := time.Now()
-	analysis := &version.Analysis{
+	analysis := &checker.Analysis{
 		LatestVersion:         mustParseVersion("2.329.0"),
 		ComparisonVersion:     mustParseVersion("2.328.0"),
 		IsLatest:              false,
@@ -437,22 +437,22 @@ func TestCIOutputAnnotations(t *testing.T) {
 	// Test that different statuses produce appropriate annotations
 	tests := []struct {
 		name               string
-		status             version.Status
+		status             checker.Status
 		expectedAnnotation string
 	}{
-		{"warning status", version.StatusWarning, "::warning"},
-		{"critical status", version.StatusCritical, "::warning"},
-		{"expired status", version.StatusExpired, "::error"},
+		{"warning status", checker.StatusWarning, "::warning"},
+		{"critical status", checker.StatusCritical, "::warning"},
+		{"expired status", checker.StatusExpired, "::error"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			analysis := &version.Analysis{
+			analysis := &checker.Analysis{
 				LatestVersion:         mustParseVersion("2.329.0"),
 				ComparisonVersion:     mustParseVersion("2.327.0"),
 				IsLatest:              false,
-				IsExpired:             tt.status == version.StatusExpired,
-				IsCritical:            tt.status == version.StatusCritical,
+				IsExpired:             tt.status == checker.StatusExpired,
+				IsCritical:            tt.status == checker.StatusCritical,
 				ReleasesBehind:        2,
 				DaysSinceUpdate:       35,
 				FirstNewerVersion:     mustParseVersion("2.328.0"),
@@ -472,7 +472,7 @@ func TestCIOutputAnnotations(t *testing.T) {
 
 // TestOutputWithNoComparison tests output when no comparison version is provided
 func TestOutputWithNoComparison(t *testing.T) {
-	analysis := &version.Analysis{
+	analysis := &checker.Analysis{
 		LatestVersion:     mustParseVersion("2.329.0"),
 		ComparisonVersion: nil,
 		IsLatest:          false,

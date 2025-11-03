@@ -11,9 +11,9 @@ import (
 	colour "github.com/fatih/color"
 	"github.com/nickromney-org/github-actions-runner-version/internal/cache"
 	"github.com/nickromney-org/github-actions-runner-version/internal/config"
-	"github.com/nickromney-org/github-actions-runner-version/internal/github"
 	"github.com/nickromney-org/github-actions-runner-version/internal/policy"
-	"github.com/nickromney-org/github-actions-runner-version/internal/version"
+	"github.com/nickromney-org/github-actions-runner-version/pkg/checker"
+	"github.com/nickromney-org/github-actions-runner-version/pkg/client"
 	"github.com/spf13/cobra"
 )
 
@@ -207,7 +207,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create GitHub client
-	client := github.NewClient(token, repoConfig.Owner, repoConfig.Repo)
+	ghClient := client.NewClient(token, repoConfig.Owner, repoConfig.Repo)
 
 	// Create cache manager (not used yet, but will be in future phases)
 	_ = cache.NewManager(cachePath)
@@ -216,14 +216,14 @@ func run(cmd *cobra.Command, args []string) error {
 	pol := policy.NewPolicy(repoConfig)
 
 	// Create checker with policy
-	checker := version.NewCheckerWithPolicy(client, version.CheckerConfig{
+	versionChecker := checker.NewCheckerWithPolicy(ghClient, checker.Config{
 		CriticalAgeDays: repoConfig.CriticalDays,
 		MaxAgeDays:      repoConfig.MaxDays,
 		NoCache:         noCache,
 	}, pol)
 
 	// Run analysis
-	analysis, err := checker.Analyse(cmd.Context(), comparisonVersion)
+	analysis, err := versionChecker.Analyse(cmd.Context(), comparisonVersion)
 	if err != nil {
 		// For JSON output, return error as JSON
 		if jsonOutput {
@@ -241,7 +241,7 @@ func run(cmd *cobra.Command, args []string) error {
 			red.Printf("\n❌ Error: %v\n\n", err)
 
 			// Fetch latest release to show helpful info
-			latestRelease, fetchErr := client.GetLatestRelease(cmd.Context())
+			latestRelease, fetchErr := ghClient.GetLatestRelease(cmd.Context())
 			if fetchErr == nil {
 				yellow.Println("ℹ️  Semantic Version format: MAJOR.MINOR.PATCH")
 				yellow.Printf("   Example: 2.326.0\n\n")
@@ -256,19 +256,19 @@ func run(cmd *cobra.Command, args []string) error {
 			red.Printf("\n❌ Error: %v\n\n", err)
 
 			// Fetch latest release to show helpful info
-			latestRelease, fetchErr := client.GetLatestRelease(cmd.Context())
+			latestRelease, fetchErr := ghClient.GetLatestRelease(cmd.Context())
 			if fetchErr == nil {
 				yellow.Printf("💡 Use v%s (Released %s)\n", latestRelease.Version, formatUKDate(latestRelease.PublishedAt))
 
 				// Show recent releases table if we can fetch them
-				allReleases, fetchErr := client.GetAllReleases(cmd.Context())
+				allReleases, fetchErr := ghClient.GetAllReleases(cmd.Context())
 				if fetchErr == nil && len(allReleases) > 0 {
 					// Create a minimal analysis just for displaying the table
-					tempAnalysis := &version.Analysis{
+					tempAnalysis := &checker.Analysis{
 						LatestVersion: latestRelease.Version,
 					}
 					// Calculate recent releases for display
-					tempChecker := version.NewChecker(client, version.CheckerConfig{})
+					tempChecker := checker.NewChecker(ghClient, checker.Config{})
 					tempAnalysis.RecentReleases = tempChecker.CalculateRecentReleases(allReleases, latestRelease.Version, latestRelease.Version)
 
 					printExpiryTable(tempAnalysis, comparisonVersion)
@@ -337,7 +337,7 @@ func run(cmd *cobra.Command, args []string) error {
 	return outputTerminal(analysis)
 }
 
-func outputJSON(analysis *version.Analysis) error {
+func outputJSON(analysis *checker.Analysis) error {
 	data, err := analysis.MarshalJSON()
 	if err != nil {
 		return err
@@ -354,7 +354,7 @@ func outputErrorJSON(err error) {
 	fmt.Println(errorJSON)
 }
 
-func outputCI(analysis *version.Analysis) error {
+func outputCI(analysis *checker.Analysis) error {
 	// Always print latest version first (for script compatibility)
 	fmt.Println(analysis.LatestVersion)
 
@@ -423,13 +423,13 @@ func outputCI(analysis *version.Analysis) error {
 
 	// Use appropriate workflow command based on status
 	switch status {
-	case version.StatusExpired:
+	case checker.StatusExpired:
 		fmt.Printf("::error title=Runner Version Expired::%s %s\n", icon, statusLine)
-	case version.StatusCritical:
+	case checker.StatusCritical:
 		fmt.Printf("::warning title=Runner Version Critical::%s %s\n", icon, statusLine)
-	case version.StatusWarning:
+	case checker.StatusWarning:
 		fmt.Printf("::notice title=Runner Version Behind::%s %s\n", icon, statusLine)
-	case version.StatusCurrent:
+	case checker.StatusCurrent:
 		fmt.Printf("::notice title=Runner Version Current::%s %s\n", icon, statusLine)
 	}
 
@@ -487,7 +487,7 @@ func outputCI(analysis *version.Analysis) error {
 	return nil
 }
 
-func writeGitHubSummary(summaryFile string, analysis *version.Analysis) error {
+func writeGitHubSummary(summaryFile string, analysis *checker.Analysis) error {
 	f, err := os.OpenFile(summaryFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -520,15 +520,15 @@ func writeGitHubSummary(summaryFile string, analysis *version.Analysis) error {
 	}
 
 	// Action required section
-	if status == version.StatusExpired {
+	if status == checker.StatusExpired {
 		fmt.Fprintf(f, "\n### ⚠️ Action Required\n\n")
 		fmt.Fprintf(f, "**Update to v%s or later immediately.** ", analysis.FirstNewerVersion)
 		fmt.Fprintf(f, "GitHub will not queue jobs to runners with expired versions.\n")
-	} else if status == version.StatusCritical {
+	} else if status == checker.StatusCritical {
 		daysLeft := analysis.MaxAgeDays - analysis.DaysSinceUpdate
 		fmt.Fprintf(f, "\n### ⚠️ Update Soon\n\n")
 		fmt.Fprintf(f, "Version expires in **%d days**. Update to v%s or later.\n", daysLeft, analysis.FirstNewerVersion)
-	} else if status == version.StatusWarning {
+	} else if status == checker.StatusWarning {
 		fmt.Fprintf(f, "\n### ℹ️ Update Available\n\n")
 		fmt.Fprintf(f, "A newer version (v%s) is available.\n", analysis.LatestVersion)
 	}
@@ -556,22 +556,22 @@ func writeGitHubSummary(summaryFile string, analysis *version.Analysis) error {
 	return nil
 }
 
-func getStatusText(status version.Status) string {
+func getStatusText(status checker.Status) string {
 	switch status {
-	case version.StatusCurrent:
+	case checker.StatusCurrent:
 		return "Current"
-	case version.StatusWarning:
+	case checker.StatusWarning:
 		return "Behind"
-	case version.StatusCritical:
+	case checker.StatusCritical:
 		return "Critical"
-	case version.StatusExpired:
+	case checker.StatusExpired:
 		return "Expired"
 	default:
 		return "Unknown"
 	}
 }
 
-func outputTerminal(analysis *version.Analysis) error {
+func outputTerminal(analysis *checker.Analysis) error {
 	// Always print latest version first (for script compatibility)
 	fmt.Println(analysis.LatestVersion)
 
@@ -598,7 +598,7 @@ func outputTerminal(analysis *version.Analysis) error {
 	return nil
 }
 
-func printStatus(analysis *version.Analysis) {
+func printStatus(analysis *checker.Analysis) {
 	status := analysis.Status()
 	icon := getStatusIcon(status)
 	colourFunc := getStatusColour(status)
@@ -676,7 +676,7 @@ func printStatus(analysis *version.Analysis) {
 	colourFunc.Println(statusLine)
 }
 
-func printExpiryTable(analysis *version.Analysis, phantomVersionStr string) {
+func printExpiryTable(analysis *checker.Analysis, phantomVersionStr string) {
 	if len(analysis.RecentReleases) == 0 {
 		return
 	}
@@ -825,7 +825,7 @@ func printExpiryTable(analysis *version.Analysis, phantomVersionStr string) {
 	grey.Printf("\nChecked at: %s\n", timestamp)
 }
 
-func printDetails(analysis *version.Analysis) {
+func printDetails(analysis *checker.Analysis) {
 	cyan.Println("📊 Detailed Analysis")
 	cyan.Println("─────────────────────────────────────")
 
@@ -863,30 +863,30 @@ func printDetails(analysis *version.Analysis) {
 	}
 }
 
-func getStatusIcon(status version.Status) string {
+func getStatusIcon(status checker.Status) string {
 	switch status {
-	case version.StatusCurrent:
+	case checker.StatusCurrent:
 		return "✅"
-	case version.StatusWarning:
+	case checker.StatusWarning:
 		return "⚠️ "
-	case version.StatusCritical:
+	case checker.StatusCritical:
 		return "🔶"
-	case version.StatusExpired:
+	case checker.StatusExpired:
 		return "🚨"
 	default:
 		return "ℹ️ "
 	}
 }
 
-func getStatusColour(status version.Status) *colour.Color {
+func getStatusColour(status checker.Status) *colour.Color {
 	switch status {
-	case version.StatusCurrent:
+	case checker.StatusCurrent:
 		return green
-	case version.StatusWarning:
+	case checker.StatusWarning:
 		return yellow
-	case version.StatusCritical:
+	case checker.StatusCritical:
 		return yellow
-	case version.StatusExpired:
+	case checker.StatusExpired:
 		return red
 	default:
 		return cyan
