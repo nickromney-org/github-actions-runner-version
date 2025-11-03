@@ -280,6 +280,37 @@ func TestCalculateRecentReleases_Minimum4(t *testing.T) {
 	}
 }
 
+func TestAnalyse_NoComparisonVersion(t *testing.T) {
+	// Test that analysis works with no comparison version (verbose mode)
+	client := &MockGitHubClient{
+		AllReleases: []types.Release{
+			newTestRelease("2.329.0", 3),
+			newTestRelease("2.328.0", 65),
+			newTestRelease("2.327.0", 90),
+		},
+	}
+
+	checker := NewChecker(client, Config{})
+	analysis, err := checker.Analyse(context.Background(), "")
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if analysis.LatestVersion.String() != "2.329.0" {
+		t.Errorf("expected latest version 2.329.0, got %s", analysis.LatestVersion)
+	}
+
+	if analysis.ComparisonVersion != nil {
+		t.Errorf("expected no comparison version, got %s", analysis.ComparisonVersion)
+	}
+
+	// Should include recent releases for verbose display
+	if len(analysis.RecentReleases) == 0 {
+		t.Error("expected recent releases to be populated for verbose display")
+	}
+}
+
 func TestFindNewerReleases(t *testing.T) {
 	releases := []types.Release{
 		newTestRelease("2.329.0", 3),
