@@ -19,14 +19,6 @@ func mustParseVersion(v string) *semver.Version {
 	return ver
 }
 
-func mustParseTime(t string) time.Time {
-	parsed, err := time.Parse(time.RFC3339, t)
-	if err != nil {
-		panic(err)
-	}
-	return parsed
-}
-
 // TestOutputJSON tests JSON output formatting
 func TestOutputJSON(t *testing.T) {
 	tests := []struct {
@@ -84,7 +76,7 @@ func TestOutputJSON(t *testing.T) {
 				t.Fatalf("outputJSON() error = %v", err)
 			}
 
-			// Verify JSON can be marshaled
+			// Verify JSON can be marshalled
 			data, err := tt.analysis.MarshalJSON()
 			if err != nil {
 				t.Fatalf("MarshalJSON() error = %v", err)
@@ -223,9 +215,9 @@ func TestOutputCI(t *testing.T) {
 		{
 			name: "current version",
 			analysis: &version.Analysis{
-				LatestVersion:     mustParseVersion("2.329.0"),
-				ComparisonVersion: mustParseVersion("2.329.0"),
-				IsLatest:          true,
+				LatestVersion:        mustParseVersion("2.329.0"),
+				ComparisonVersion:    mustParseVersion("2.329.0"),
+				IsLatest:             true,
 				ComparisonReleasedAt: &now,
 			},
 			wantContains: []string{
