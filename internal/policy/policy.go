@@ -6,7 +6,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/nickromney-org/github-actions-runner-version/internal/config"
-	"github.com/nickromney-org/github-actions-runner-version/internal/version"
+	"github.com/nickromney-org/github-actions-runner-version/internal/types"
 )
 
 // PolicyResult contains the result of a policy evaluation
@@ -27,7 +27,7 @@ type VersionPolicy interface {
 		comparisonDate time.Time,
 		latest *semver.Version,
 		latestDate time.Time,
-		newerReleases []version.Release,
+		newerReleases []types.Release,
 	) PolicyResult
 
 	// Type returns the policy type
@@ -69,7 +69,7 @@ func (p *DaysPolicy) Evaluate(
 	comparisonDate time.Time,
 	latest *semver.Version,
 	latestDate time.Time,
-	newerReleases []version.Release,
+	newerReleases []types.Release,
 ) PolicyResult {
 	if len(newerReleases) == 0 {
 		return PolicyResult{IsExpired: false, IsCritical: false}
@@ -107,7 +107,7 @@ func (p *VersionsPolicy) Evaluate(
 	comparisonDate time.Time,
 	latest *semver.Version,
 	latestDate time.Time,
-	newerReleases []version.Release,
+	newerReleases []types.Release,
 ) PolicyResult {
 	if comparison.Equal(latest) {
 		return PolicyResult{IsExpired: false, IsCritical: false}

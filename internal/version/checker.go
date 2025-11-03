@@ -7,6 +7,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/nickromney-org/github-actions-runner-version/internal/data"
+	"github.com/nickromney-org/github-actions-runner-version/internal/policy"
 )
 
 // GitHubClient defines the interface for fetching releases
@@ -20,6 +21,7 @@ type GitHubClient interface {
 type Checker struct {
 	client GitHubClient
 	config CheckerConfig
+	policy policy.VersionPolicy // Optional: if set, overrides config-based logic
 }
 
 // NewChecker creates a new version checker
@@ -27,6 +29,16 @@ func NewChecker(client GitHubClient, config CheckerConfig) *Checker {
 	return &Checker{
 		client: client,
 		config: config,
+		policy: nil,
+	}
+}
+
+// NewCheckerWithPolicy creates a new version checker with a custom policy
+func NewCheckerWithPolicy(client GitHubClient, config CheckerConfig, pol policy.VersionPolicy) *Checker {
+	return &Checker{
+		client: client,
+		config: config,
+		policy: pol,
 	}
 }
 
@@ -201,9 +213,29 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 		analysis.FirstNewerReleaseDate = &firstNewer.PublishedAt
 		analysis.DaysSinceUpdate = daysBetween(firstNewer.PublishedAt, time.Now())
 
-		// Determine status
-		analysis.IsExpired = analysis.DaysSinceUpdate >= c.config.MaxAgeDays
-		analysis.IsCritical = !analysis.IsExpired && analysis.DaysSinceUpdate >= c.config.CriticalAgeDays
+		// Determine status using policy if available, otherwise use config
+		if c.policy != nil {
+			// Use policy system
+			comparisonDate := time.Now()
+			if analysis.ComparisonReleasedAt != nil {
+				comparisonDate = *analysis.ComparisonReleasedAt
+			}
+
+			policyResult := c.policy.Evaluate(
+				comparisonVersion,
+				comparisonDate,
+				latestRelease.Version,
+				latestRelease.PublishedAt,
+				newerReleases,
+			)
+
+			analysis.IsExpired = policyResult.IsExpired
+			analysis.IsCritical = policyResult.IsCritical
+		} else {
+			// Use legacy config-based logic
+			analysis.IsExpired = analysis.DaysSinceUpdate >= c.config.MaxAgeDays
+			analysis.IsCritical = !analysis.IsExpired && analysis.DaysSinceUpdate >= c.config.CriticalAgeDays
+		}
 	}
 
 	// Generate message

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/nickromney-org/github-actions-runner-version/internal/types"
 )
 
 // Status represents the current state of a version
@@ -18,12 +19,8 @@ const (
 	StatusExpired  Status = "expired"
 )
 
-// Release represents a GitHub release
-type Release struct {
-	Version     *semver.Version
-	PublishedAt time.Time
-	URL         string
-}
+// Release is a type alias for types.Release for backward compatibility
+type Release = types.Release
 
 // ReleaseExpiry represents expiry information for a single release
 type ReleaseExpiry struct {
