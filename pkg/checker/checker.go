@@ -149,13 +149,23 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 
 	// If no comparison version, just return latest
 	if comparisonVersionStr == "" {
-		return &Analysis{
+		analysis := &Analysis{
 			LatestVersion:   latestRelease.Version,
 			IsLatest:        false,
 			CriticalAgeDays: c.config.CriticalAgeDays,
 			MaxAgeDays:      c.config.MaxAgeDays,
 			Message:         fmt.Sprintf("Latest version: %s", latestRelease.Version),
-		}, nil
+		}
+
+		// Set policy type if available
+		if c.policy != nil {
+			analysis.PolicyType = c.policy.Type()
+		}
+
+		// Include recent releases for verbose display
+		analysis.RecentReleases = c.CalculateRecentReleases(allReleases, latestRelease.Version, latestRelease.Version)
+
+		return analysis, nil
 	}
 
 	// Parse comparison version
@@ -259,9 +269,6 @@ func (c *Checker) CalculateRecentReleases(allReleases []types.Release, compariso
 	var recentReleases []types.Release
 
 	if isVersionPolicy {
-		// For version-based policies, show unique minor versions from comparison to latest
-		majorVersion := latestVersion.Major()
-
 		// Sort all releases by version (newest first)
 		sorted := make([]types.Release, len(allReleases))
 		copy(sorted, allReleases)
@@ -282,36 +289,62 @@ func (c *Checker) CalculateRecentReleases(allReleases []types.Release, compariso
 			}
 		}
 
-		// Calculate the supported window: latest - maxVersionsBehind to latest
-		minSupportedMinor := int(latestVersion.Minor()) - maxVersionsBehind
-		if minSupportedMinor < 0 {
-			minSupportedMinor = 0
+		// Detect versioning scheme: check if there are 2 or more unique major versions in recent releases.
+		// Count unique major versions in recent releases (up to 20).
+		// If there are 2 or more unique major versions in the sample, it's a major-version scheme (Node.js style).
+		// If all releases have the same major version, it's a minor-version scheme (Kubernetes style).
+		uniqueMajors := make(map[uint64]bool)
+		sampleSize := len(sorted)
+		if sampleSize > 20 {
+			sampleSize = 20
 		}
+		for i := 0; i < sampleSize && i < len(sorted); i++ {
+			uniqueMajors[sorted[i].Version.Major()] = true
+		}
+		usesMajorVersions := len(uniqueMajors) > 1
 
-		// Collect releases to show:
-		// For each minor version, collect first and latest patch releases
-		minorReleases := make(map[string][]types.Release)
+		var versionReleases map[string][]types.Release
 
-		for _, release := range sorted {
-			if release.Version.Major() == majorVersion {
-				minorKey := fmt.Sprintf("%d.%d", release.Version.Major(), release.Version.Minor())
-				minorReleases[minorKey] = append(minorReleases[minorKey], release)
+		if usesMajorVersions {
+			// Major version scheme (Node.js style): show different major versions
+			versionReleases = make(map[string][]types.Release)
+			minSupportedMajor := int(latestVersion.Major()) - maxVersionsBehind
+			if minSupportedMajor < 0 {
+				minSupportedMajor = 0
+			}
+
+			for _, release := range sorted {
+				major := release.Version.Major()
+				// Include if in supported window or is comparison version's major
+				if int(major) >= minSupportedMajor || major == comparisonVersion.Major() {
+					majorKey := fmt.Sprintf("%d", major)
+					versionReleases[majorKey] = append(versionReleases[majorKey], release)
+				}
+			}
+		} else {
+			// Minor version scheme (Kubernetes style): show different minor versions within same major
+			majorVersion := latestVersion.Major()
+			versionReleases = make(map[string][]types.Release)
+			minSupportedMinor := int(latestVersion.Minor()) - maxVersionsBehind
+			if minSupportedMinor < 0 {
+				minSupportedMinor = 0
+			}
+
+			for _, release := range sorted {
+				if release.Version.Major() == majorVersion {
+					minor := release.Version.Minor()
+					// Include if in supported window or is comparison version's minor
+					if int(minor) >= minSupportedMinor || minor == comparisonVersion.Minor() {
+						minorKey := fmt.Sprintf("%d.%d", release.Version.Major(), release.Version.Minor())
+						versionReleases[minorKey] = append(versionReleases[minorKey], release)
+					}
+				}
 			}
 		}
 
-		// Now for each minor version, add first patch, latest patch, and user's version if different
-		for _, releases := range minorReleases {
+		// Now for each version group, add first and latest patch releases
+		for _, releases := range versionReleases {
 			if len(releases) == 0 {
-				continue
-			}
-
-			minor := releases[0].Version.Minor()
-			isInSupportedWindow := int(minor) >= minSupportedMinor
-			isUserMinor := releases[0].Version.Major() == comparisonVersion.Major() &&
-				releases[0].Version.Minor() == comparisonVersion.Minor()
-
-			// Skip if not in supported window and not the user's version
-			if !isInSupportedWindow && !isUserMinor {
 				continue
 			}
 
@@ -336,13 +369,11 @@ func (c *Checker) CalculateRecentReleases(allReleases []types.Release, compariso
 			}
 
 			// Add user's version if it's different from both first and latest
-			if isUserMinor {
-				if !comparisonVersion.Equal(first.Version) && !comparisonVersion.Equal(latest.Version) {
-					for _, r := range releases {
-						if r.Version.Equal(comparisonVersion) {
-							recentReleases = append(recentReleases, r)
-							break
-						}
+			if !comparisonVersion.Equal(first.Version) && !comparisonVersion.Equal(latest.Version) {
+				for _, r := range releases {
+					if r.Version.Equal(comparisonVersion) {
+						recentReleases = append(recentReleases, r)
+						break
 					}
 				}
 			}

@@ -55,10 +55,17 @@ func TestGetPredefinedConfig(t *testing.T) {
 			wantErr:   false,
 		},
 		{
-			name:      "ubuntu",
-			input:     "ubuntu",
-			wantOwner: "canonical",
-			wantRepo:  "ubuntu",
+			name:      "nodejs",
+			input:     "nodejs",
+			wantOwner: "nodejs",
+			wantRepo:  "node",
+			wantErr:   false,
+		},
+		{
+			name:      "node alias",
+			input:     "node",
+			wantOwner: "nodejs",
+			wantRepo:  "node",
 			wantErr:   false,
 		},
 		{
@@ -225,10 +232,10 @@ func TestPredefinedConfigs(t *testing.T) {
 			wantCache:  false, // Will be enabled in Phase 3.1
 		},
 		{
-			name:       "ubuntu uses days policy",
-			config:     ConfigUbuntu,
-			wantPolicy: PolicyTypeDays,
-			wantCache:  false, // Will be enabled in Phase 3.1
+			name:       "nodejs uses versions policy",
+			config:     ConfigNodeJS,
+			wantPolicy: PolicyTypeVersions,
+			wantCache:  false, // Will be enabled when cache is created
 		},
 	}
 

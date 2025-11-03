@@ -59,14 +59,13 @@ var (
 		CacheEnabled:      false, // Will be enabled when cache is created
 	}
 
-	ConfigUbuntu = RepositoryConfig{
-		Owner:        "canonical",
-		Repo:         "ubuntu",
-		PolicyType:   PolicyTypeDays,
-		CriticalDays: 180, // 6 months
-		MaxDays:      365, // 1 year
-		CachePath:    "data/ubuntu.json",
-		CacheEnabled: false, // Will be enabled when cache is created
+	ConfigNodeJS = RepositoryConfig{
+		Owner:             "nodejs",
+		Repo:              "node",
+		PolicyType:        PolicyTypeVersions,
+		MaxVersionsBehind: 3, // Support last 3 major versions (e.g., Current + 2 LTS)
+		CachePath:         "data/nodejs.json",
+		CacheEnabled:      false, // Will be enabled when cache is created
 	}
 )
 
@@ -79,7 +78,8 @@ func GetPredefinedConfig(name string) (*RepositoryConfig, error) {
 		"kubernetes":     ConfigKubernetes,
 		"k8s":            ConfigKubernetes, // Alias
 		"pulumi":         ConfigPulumi,
-		"ubuntu":         ConfigUbuntu,
+		"nodejs":         ConfigNodeJS,
+		"node":           ConfigNodeJS, // Alias
 	}
 
 	config, ok := configs[strings.ToLower(name)]
@@ -122,8 +122,8 @@ func ParseRepositoryString(repoStr string) (*RepositoryConfig, error) {
 	if fullName == "pulumi/pulumi" {
 		return &ConfigPulumi, nil
 	}
-	if fullName == "canonical/ubuntu" {
-		return &ConfigUbuntu, nil
+	if fullName == "nodejs/node" {
+		return &ConfigNodeJS, nil
 	}
 
 	// Default to version-based policy with conservative defaults

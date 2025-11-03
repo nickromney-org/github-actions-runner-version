@@ -68,7 +68,11 @@ Supports multiple repositories with both time-based (days) and version-based
 
   # Kubernetes (version-based: 3 minor versions supported)
   github-release-version-checker --repo kubernetes/kubernetes -c 1.31.12
-  github-release-version-checker --repo kubernetes/kubernetes -c 1.28.0
+  github-release-version-checker --repo k8s -c 1.28.0
+
+  # Node.js (version-based: 3 major versions supported)
+  github-release-version-checker --repo nodejs/node -c v20.0.0
+  github-release-version-checker --repo node -c v18.20.0
 
   # Pulumi (version-based policy)
   github-release-version-checker --repo pulumi/pulumi -c 3.204.0
@@ -169,10 +173,14 @@ func run(cmd *cobra.Command, args []string) error {
 	var err error
 
 	if repository != "" {
-		// Parse user-provided repository
-		repoConfig, err = config.ParseRepositoryString(repository)
+		// Try predefined config first (for short names like "node", "k8s")
+		repoConfig, err = config.GetPredefinedConfig(repository)
 		if err != nil {
-			return fmt.Errorf("invalid repository: %w", err)
+			// Not a predefined config, try parsing as owner/repo or URL
+			repoConfig, err = config.ParseRepositoryString(repository)
+			if err != nil {
+				return fmt.Errorf("invalid repository: %w", err)
+			}
 		}
 	} else {
 		// Default to actions/runner
@@ -575,8 +583,13 @@ func outputTerminal(analysis *checker.Analysis) error {
 	// Always print latest version first (for script compatibility)
 	fmt.Println(analysis.LatestVersion)
 
-	// If no comparison, we're done
+	// If no comparison version provided
 	if analysis.ComparisonVersion == nil {
+		// In verbose mode, show recent releases table
+		if verbose && len(analysis.RecentReleases) > 0 {
+			fmt.Println()
+			printExpiryTable(analysis, "")
+		}
 		return nil
 	}
 
@@ -685,9 +698,9 @@ func printExpiryTable(analysis *checker.Analysis, phantomVersionStr string) {
 
 	fmt.Println()
 	if isVersionPolicy {
-		cyan.Println("📋 Version Release History")
+		cyan.Println("📋 Release Timeline")
 		cyan.Println("─────────────────────────────────────────────────────")
-		fmt.Printf("%-12s %-14s %-16s %s\n", "Version", "Release Date", "Age", "Status")
+		fmt.Printf("%-12s %-14s %s\n", "Version", "Release Date", "Status")
 	} else {
 		cyan.Println("📅 Release Expiry Timeline")
 		cyan.Println("─────────────────────────────────────────────────────")
@@ -709,7 +722,7 @@ func printExpiryTable(analysis *checker.Analysis, phantomVersionStr string) {
 			// Print phantom version row
 			bold := colour.New(colour.Bold)
 			if isVersionPolicy {
-				bold.Printf("%-12s %-14s %-16s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
+				bold.Printf("%-12s %-14s %s\n", phantomVersion.String(), "-", "❌ Does Not Exist  ← Your requested version")
 			} else {
 				bold.Printf("%-10s %-14s %-14s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
 			}
@@ -800,7 +813,7 @@ func printExpiryTable(analysis *checker.Analysis, phantomVersionStr string) {
 			}
 		} else {
 			if isVersionPolicy {
-				fmt.Printf("%-12s %-14s %-16s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+				fmt.Printf("%-12s %-14s %s%s\n", versionStr, releasedStr, statusStr, arrow)
 			} else {
 				fmt.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
 			}

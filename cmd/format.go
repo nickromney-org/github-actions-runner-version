@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-// formatUKDate formats a date in UK format: "25 Jul 2024"
+// formatUKDate formats a date in UK format: "06 May 2025"
 func formatUKDate(t time.Time) string {
-	return t.Format("2 Jan 2006")
+	return t.Format("02 Jan 2006")
 }
 
 // formatDaysAgo returns a human-readable string for days

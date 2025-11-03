@@ -19,7 +19,7 @@ func TestFormatUKDate(t *testing.T) {
 		{
 			name:     "single digit day",
 			date:     time.Date(2024, 10, 5, 0, 0, 0, 0, time.UTC),
-			expected: "5 Oct 2024",
+			expected: "05 Oct 2024",
 		},
 		{
 			name:     "december",
