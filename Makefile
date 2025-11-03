@@ -1,4 +1,4 @@
-.PHONY: build clean install test lint fmt help
+.PHONY: build clean install test lint lint-md fmt help
 
 # Binary name
 BINARY_NAME=github-release-version-checker
@@ -61,9 +61,13 @@ test: ## Run tests
 test-coverage: test ## Run tests with coverage report
 	$(GOCMD) tool cover -html=coverage.out
 
-lint: ## Run linter
+lint: ## Run Go linter
 	@which golangci-lint > /dev/null || (echo "Installing golangci-lint..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest)
 	golangci-lint run ./...
+
+lint-md: ## Run markdown linter
+	@which markdownlint > /dev/null || (echo "markdownlint not found. Install with: npm install -g markdownlint-cli" && exit 1)
+	markdownlint '**/*.md' --ignore node_modules
 
 fmt: ## Format code
 	$(GOCMD) fmt ./...

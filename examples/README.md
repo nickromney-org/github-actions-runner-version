@@ -86,9 +86,9 @@ Then import the packages you need:
 
 ```go
 import (
-    "github.com/nickromney-org/github-actions-runner-version/pkg/checker"
-    "github.com/nickromney-org/github-actions-runner-version/pkg/client"
-    "github.com/nickromney-org/github-actions-runner-version/pkg/policy"
+ "github.com/nickromney-org/github-actions-runner-version/pkg/checker"
+ "github.com/nickromney-org/github-actions-runner-version/pkg/client"
+ "github.com/nickromney-org/github-actions-runner-version/pkg/policy"
 )
 ```
 
@@ -121,9 +121,9 @@ versionPolicy := policy.NewVersionsPolicy(maxMinorVersionsBehind)
 ```go
 // Create checker with policy
 versionChecker := checker.NewCheckerWithPolicy(ghClient, checker.Config{
-    CriticalAgeDays: 12,
-    MaxAgeDays:      30,
-    NoCache:         false,
+ CriticalAgeDays: 12,
+ MaxAgeDays: 30,
+ NoCache: false,
 }, pol)
 
 // Analyse a version
@@ -132,13 +132,13 @@ analysis, err := versionChecker.Analyse(ctx, "2.328.0")
 // Check status
 switch analysis.Status() {
 case checker.StatusCurrent:
-    // Up to date
+ // Up to date
 case checker.StatusWarning:
-    // Behind but within policy
+ // Behind but within policy
 case checker.StatusCritical:
-    // Approaching expiry
+ // Approaching expiry
 case checker.StatusExpired:
-    // Beyond policy threshold
+ // Beyond policy threshold
 }
 ```
 

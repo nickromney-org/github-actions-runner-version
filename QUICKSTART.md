@@ -1,8 +1,8 @@
-# 🚀 Quick Start: 5 Minutes to Runner Monitoring
+# Quick Start: 5 Minutes to Runner Monitoring
 
 Get up and running with GitHub Actions runner version monitoring in 5 minutes.
 
-## ⚡ Step 1: Install the Tool (30 seconds)
+## Step 1: Install the Tool (30 seconds)
 
 ### Option A: Download Binary (Fastest)
 
@@ -40,7 +40,7 @@ runner-version-check --help
 
 ---
 
-## 📝 Step 2: Test It Locally (1 minute)
+## Step 2: Test It Locally (1 minute)
 
 Find your runner version:
 
@@ -61,18 +61,18 @@ runner-version-check -c 2.328.0
 You should see something like:
 
 ```text
-2.329.0
+1.329.0
 
-ℹ️  Version 2.328.0: 1 release behind
+ℹ Version 2.328.0: 1 release behind
 
-   📦 Update available: v2.329.0
-      Released: Oct 14, 2024 (3 days ago)
-   🎯 Latest version: v2.329.0
+ Update available: v2.329.0
+ Released: Oct 14, 2024 (3 days ago)
+ Latest version: v2.329.0
 ```
 
 ---
 
-## 🔄 Step 3: Add to GitHub Actions (2 minutes)
+## Step 3: Add to GitHub Actions (2 minutes)
 
 Create `.github/workflows/check-runner.yml`:
 
@@ -80,22 +80,22 @@ Create `.github/workflows/check-runner.yml`:
 name: Check Runner Version
 
 on:
-  schedule:
-    - cron: "0 9 * * *" # Daily at 9 AM UTC
-  workflow_dispatch: # Manual trigger
+ schedule:
+ - cron: "0 9 * * *" # Daily at 9 AM UTC
+ workflow_dispatch: # Manual trigger
 
 jobs:
-  check:
-    runs-on: self-hosted
-    steps:
-      - name: Get runner version
-        id: version
-        run: |
-          VERSION=$(cat $RUNNER_HOME/.runner | jq -r '.agentVersion')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+ check:
+ runs-on: self-hosted
+ steps:
+ - name: Get runner version
+ id: version
+ run: |
+ VERSION=$(cat $RUNNER_HOME/.runner | jq -r '.agentVersion')
+ echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Check version
-        run: runner-version-check -c ${{ steps.version.outputs.version }} --ci
+ - name: Check version
+ run: runner-version-check -c ${{ steps.version.outputs.version }} --ci
 ```
 
 Commit and push:
@@ -108,14 +108,14 @@ git push
 
 ---
 
-## ✅ Step 4: Test the Workflow (1 minute)
+## Step 4: Test the Workflow (1 minute)
 
 ### Trigger Manually
 
 1. Go to your repo on GitHub
-2. Click **Actions** tab
-3. Select **Check Runner Version** workflow
-4. Click **Run workflow**
+1. Click **Actions** tab
+1. Select **Check Runner Version** workflow
+1. Click **Run workflow**
 
 ### View Results
 
@@ -124,16 +124,16 @@ git push
 
 ---
 
-## 🎉 Done!
+## Done
 
 You now have:
 
-- ✅ Daily automated checks
-- ✅ Beautiful formatted output in GitHub Actions
-- ✅ Job summaries with tables and links
-- ✅ A manual trigger option
+- Daily automated checks
+- Beautiful formatted output in GitHub Actions
+- Job summaries with tables and links
+- A manual trigger option
 
-## 🔥 Next Steps (Optional)
+## Next Steps (Optional)
 
 ### Add Issue Creation on Expiration
 
@@ -141,32 +141,32 @@ Add this step to your workflow:
 
 ```yaml
 - name: Create issue if expired
-  if: failure()
-  uses: actions/github-script@v7
-  with:
-    script: |
-      await github.rest.issues.create({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        title: '🚨 Runner version expired',
-        body: 'The runner version has expired. Update immediately.',
-        labels: ['runner', 'critical']
-      });
+ if: failure()
+ uses: actions/github-script@v7
+ with:
+ script: |
+ await github.rest.issues.create({
+ owner: context.repo.owner,
+ repo: context.repo.repo,
+ title: ' Runner version expired',
+ body: 'The runner version has expired. Update immediately.',
+ labels: ['runner', 'critical']
+ });
 ```
 
 ### Add Slack Notifications
 
 ```yaml
 - name: Notify Slack
-  if: failure()
-  uses: slackapi/slack-github-action@v1
-  with:
-    payload: |
-      {
-        "text": "🚨 Runner version check failed! Update needed."
-      }
-  env:
-    SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+ if: failure()
+ uses: slackapi/slack-github-action@v1
+ with:
+ payload: |
+ {
+ "text": " Runner version check failed! Update needed."
+ }
+ env:
+ SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 ```
 
 ### Check Multiple Runners
@@ -175,17 +175,17 @@ If you have multiple self-hosted runners, create separate workflows or use matri
 
 ```yaml
 strategy:
-  matrix:
-    runner: [runner-01, runner-02, runner-03]
+ matrix:
+ runner: [runner-01, runner-02, runner-03]
 jobs:
-  check:
-    runs-on: ${{ matrix.runner }}
-    # ... rest of the workflow
+ check:
+ runs-on: ${{ matrix.runner }}
+ # ... rest of the workflow
 ```
 
 ---
 
-## 💡 Pro Tips
+## Pro Tips
 
 ### Tip 1: Use GITHUB_TOKEN
 
@@ -193,9 +193,9 @@ The tool respects `GITHUB_TOKEN` environment variable to avoid rate limiting:
 
 ```yaml
 - name: Check version
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  run: runner-version-check -c ${{ steps.version.outputs.version }} --ci
+ env:
+ GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+ run: runner-version-check -c ${{ steps.version.outputs.version }} --ci
 ```
 
 ### Tip 2: Customize Thresholds
@@ -246,7 +246,7 @@ export PATH="/usr/local/bin:$PATH"
 
 ---
 
-## 📚 More Information
+## More Information
 
 - **Full Documentation:** [README.md](README.md)
 - **Output Modes:** [OUTPUT-MODES.md](OUTPUT-MODES.md)
@@ -255,14 +255,14 @@ export PATH="/usr/local/bin:$PATH"
 
 ---
 
-## 🎯 Summary
+## Summary
 
-| Time    | Step           |
+| Time | Step |
 | ------- | -------------- |
-| 30s     | Install binary |
-| 1m      | Test locally   |
-| 2m      | Add workflow   |
-| 1m      | Test workflow  |
-| **~5m** | **Total**      |
+| 30s | Install binary |
+| 1m | Test locally |
+| 2m | Add workflow |
+| 1m | Test workflow |
+| **~5m** | **Total** |
 
-Now you'll get daily checks of your runner version with beautiful formatted output! 🎉
+Now you'll get daily checks of your runner version with beautiful formatted output! 
