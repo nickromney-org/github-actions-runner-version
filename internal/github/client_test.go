@@ -7,7 +7,7 @@ import (
 	"time"
 
 	gh "github.com/google/go-github/v57/github"
-	"github.com/nickromney-org/github-actions-runner-version/internal/version"
+	"github.com/nickromney-org/github-release-version-checker/internal/version"
 )
 
 // TestNewClient tests client creation

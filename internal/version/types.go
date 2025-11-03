@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/nickromney-org/github-actions-runner-version/pkg/types"
+	"github.com/nickromney-org/github-release-version-checker/pkg/types"
 )
 
 // Status represents the current state of a version

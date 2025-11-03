@@ -6,7 +6,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	gh "github.com/google/go-github/v57/github"
-	"github.com/nickromney-org/github-actions-runner-version/pkg/types"
+	"github.com/nickromney-org/github-release-version-checker/pkg/types"
 	"golang.org/x/oauth2"
 )
 

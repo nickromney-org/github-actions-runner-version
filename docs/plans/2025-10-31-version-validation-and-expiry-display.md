@@ -650,8 +650,8 @@ import (
 
  colour "github.com/fatih/color"
  "github.com/spf13/cobra"
- "github.com/nickromney-org/github-actions-runner-version/internal/github"
- "github.com/nickromney-org/github-actions-runner-version/internal/version"
+ "github.com/nickromney-org/github-release-version-checker/internal/github"
+ "github.com/nickromney-org/github-release-version-checker/internal/version"
 )
 ```
 

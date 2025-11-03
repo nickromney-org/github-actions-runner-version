@@ -59,7 +59,7 @@ jobs:
 
       - name: Download version checker
         run: |
-          REPO="nickromney-org/github-actions-runner-version"
+          REPO="nickromney-org/github-release-version-checker"
           BINARY="github-actions-runner-version-linux-amd64"
           URL="https://github.com/${REPO}/releases/latest/download"
           curl -LO "${URL}/${BINARY}"

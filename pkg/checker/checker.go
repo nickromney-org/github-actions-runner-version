@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/nickromney-org/github-actions-runner-version/internal/data"
-	"github.com/nickromney-org/github-actions-runner-version/pkg/policy"
-	"github.com/nickromney-org/github-actions-runner-version/pkg/types"
+	"github.com/nickromney-org/github-release-version-checker/internal/data"
+	"github.com/nickromney-org/github-release-version-checker/pkg/policy"
+	"github.com/nickromney-org/github-release-version-checker/pkg/types"
 )
 
 // GitHubClient defines the interface for fetching releases

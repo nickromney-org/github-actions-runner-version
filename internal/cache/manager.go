@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/nickromney-org/github-actions-runner-version/internal/config"
-	"github.com/nickromney-org/github-actions-runner-version/internal/version"
+	"github.com/nickromney-org/github-release-version-checker/internal/config"
+	"github.com/nickromney-org/github-release-version-checker/internal/version"
 )
 
 //go:embed data/*.json

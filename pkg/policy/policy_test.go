@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/nickromney-org/github-actions-runner-version/pkg/types"
+	"github.com/nickromney-org/github-release-version-checker/pkg/types"
 )
 
 func makeRelease(ver string, daysAgo int) types.Release {

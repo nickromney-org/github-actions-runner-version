@@ -166,8 +166,8 @@ When using `--ci` flag for GitHub Actions:
 
 ## Repository and Module
 
-- **Repository**: https://github.com/nickromney-org/github-actions-runner-version
-- **Module Path**: `github.com/nickromney-org/github-actions-runner-version`
+- **Repository**: https://github.com/nickromney-org/github-release-version-checker
+- **Module Path**: `github.com/nickromney-org/github-release-version-checker`
 - **Binary Name**: `github-release-version-checker`
 
 Note: The current go.mod may still reference placeholder paths (`github.com/yourusername/runner-version-checker`) that should be updated to the correct module path above.

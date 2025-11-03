@@ -9,11 +9,11 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	colour "github.com/fatih/color"
-	"github.com/nickromney-org/github-actions-runner-version/internal/cache"
-	"github.com/nickromney-org/github-actions-runner-version/internal/config"
-	"github.com/nickromney-org/github-actions-runner-version/internal/policy"
-	"github.com/nickromney-org/github-actions-runner-version/pkg/checker"
-	"github.com/nickromney-org/github-actions-runner-version/pkg/client"
+	"github.com/nickromney-org/github-release-version-checker/internal/cache"
+	"github.com/nickromney-org/github-release-version-checker/internal/config"
+	"github.com/nickromney-org/github-release-version-checker/internal/policy"
+	"github.com/nickromney-org/github-release-version-checker/pkg/checker"
+	"github.com/nickromney-org/github-release-version-checker/pkg/client"
 	"github.com/spf13/cobra"
 )
 

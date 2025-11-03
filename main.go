@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/nickromney-org/github-actions-runner-version/cmd"
+	"github.com/nickromney-org/github-release-version-checker/cmd"
 )
 
 // Version information (set via ldflags during build)

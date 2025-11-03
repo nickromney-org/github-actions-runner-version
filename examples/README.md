@@ -79,16 +79,16 @@ go run main.go
 To use this library in your own project:
 
 ```bash
-go get github.com/nickromney-org/github-actions-runner-version
+go get github.com/nickromney-org/github-release-version-checker
 ```
 
 Then import the packages you need:
 
 ```go
 import (
- "github.com/nickromney-org/github-actions-runner-version/pkg/checker"
- "github.com/nickromney-org/github-actions-runner-version/pkg/client"
- "github.com/nickromney-org/github-actions-runner-version/pkg/policy"
+ "github.com/nickromney-org/github-release-version-checker/pkg/checker"
+ "github.com/nickromney-org/github-release-version-checker/pkg/client"
+ "github.com/nickromney-org/github-release-version-checker/pkg/policy"
 )
 ```
 
@@ -145,4 +145,4 @@ case checker.StatusExpired:
 ## See Also
 
 - [Main README](../README.md) - Full project documentation
-- [API Documentation](https://pkg.go.dev/github.com/nickromney-org/github-actions-runner-version) - Go package documentation
+- [API Documentation](https://pkg.go.dev/github.com/nickromney-org/github-release-version-checker) - Go package documentation
