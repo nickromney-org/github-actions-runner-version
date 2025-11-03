@@ -23,6 +23,12 @@ make install
 make docker-build
 ```
 
+**Build Optimizations**:
+- `CGO_ENABLED=0`: Static compilation without C dependencies
+- `-trimpath`: Removes absolute file paths for reproducible builds
+- `-w -s`: Strips debug information and symbol table
+- Binary size: ~9.8MB (darwin/arm64)
+
 ### Testing
 ```bash
 # Run all tests with race detection and coverage
@@ -33,7 +39,17 @@ make test-coverage
 
 # Run specific test
 go test -v ./internal/version -run TestAnalyse_ExpiredVersion
+
+# Run benchmarks
+go test -bench=. -benchmem ./internal/version/
 ```
+
+**Test Coverage** (as of 2025-11-03):
+- Overall: 46.3%
+- `internal/version`: 89.6%
+- `internal/data`: 80.0%
+- `internal/github`: 46.9%
+- `cmd`: 31.8%
 
 ### Other Development Commands
 ```bash
