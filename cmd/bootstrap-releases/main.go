@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/nickromney-org/github-actions-runner-version/internal/config"
-	"github.com/nickromney-org/github-actions-runner-version/internal/github"
+	"github.com/nickromney-org/github-actions-runner-version/pkg/client"
 )
 
 type ReleaseJSON struct {
@@ -37,13 +37,13 @@ func main() {
 	}
 
 	// Create GitHub client
-	client := github.NewClient(*token, repoConfig.Owner, repoConfig.Repo)
+	ghClient := client.NewClient(*token, repoConfig.Owner, repoConfig.Repo)
 	ctx := context.Background()
 
 	fmt.Printf("Fetching all releases from %s/%s via GitHub API...\n", repoConfig.Owner, repoConfig.Repo)
 
 	// Fetch all releases
-	releases, err := client.GetAllReleases(ctx)
+	releases, err := ghClient.GetAllReleases(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)

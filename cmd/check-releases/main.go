@@ -8,8 +8,9 @@ import (
 
 	"github.com/nickromney-org/github-actions-runner-version/internal/config"
 	"github.com/nickromney-org/github-actions-runner-version/internal/data"
-	"github.com/nickromney-org/github-actions-runner-version/internal/github"
-	"github.com/nickromney-org/github-actions-runner-version/internal/version"
+	"github.com/nickromney-org/github-actions-runner-version/pkg/checker"
+	"github.com/nickromney-org/github-actions-runner-version/pkg/client"
+	"github.com/nickromney-org/github-actions-runner-version/pkg/types"
 )
 
 func main() {
@@ -25,7 +26,7 @@ func main() {
 	}
 
 	// Create GitHub client
-	client := github.NewClient(*token, repoConfig.Owner, repoConfig.Repo)
+	ghClient := client.NewClient(*token, repoConfig.Owner, repoConfig.Repo)
 	ctx := context.Background()
 
 	// Load embedded releases
@@ -35,10 +36,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Convert data.Release to version.Release
-	embedded := make([]version.Release, len(embeddedData))
+	// Convert data.Release to types.Release
+	embedded := make([]types.Release, len(embeddedData))
 	for i, r := range embeddedData {
-		embedded[i] = version.Release{
+		embedded[i] = types.Release{
 			Version:     r.Version,
 			PublishedAt: r.PublishedAt,
 			URL:         r.URL,
@@ -51,7 +52,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	latestEmbeddedRelease := version.FindLatestRelease(embedded)
+	latestEmbeddedRelease := checker.FindLatestRelease(embedded)
 	if latestEmbeddedRelease == nil {
 		fmt.Fprintf(os.Stderr, "Error: Could not find latest embedded release\n")
 		os.Exit(1)
@@ -59,7 +60,7 @@ func main() {
 	latestEmbedded := latestEmbeddedRelease.Version.String()
 
 	// Fetch 5 most recent from API
-	recent, err := client.GetRecentReleases(ctx, 5)
+	recent, err := ghClient.GetRecentReleases(ctx, 5)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error fetching recent releases: %v\n", err)
 		os.Exit(1)
@@ -80,7 +81,7 @@ func main() {
 	}
 
 	// Get latest available version from API using helper
-	latestAvailableRelease := version.FindLatestRelease(recent)
+	latestAvailableRelease := checker.FindLatestRelease(recent)
 	latestAvailable := ""
 	if latestAvailableRelease != nil {
 		latestAvailable = latestAvailableRelease.Version.String()

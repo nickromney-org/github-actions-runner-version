@@ -5,8 +5,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/nickromney-org/github-actions-runner-version/internal/config"
-	"github.com/nickromney-org/github-actions-runner-version/internal/types"
+	"github.com/nickromney-org/github-actions-runner-version/pkg/types"
 )
 
 func makeRelease(ver string, daysAgo int) types.Release {
@@ -247,31 +246,26 @@ func TestVersionsPolicy_Evaluate(t *testing.T) {
 	}
 }
 
-func TestNewPolicy(t *testing.T) {
-	tests := []struct {
-		name     string
-		config   *config.RepositoryConfig
-		wantType string
-	}{
-		{
-			name:     "days policy",
-			config:   &config.ConfigActionsRunner,
-			wantType: "days",
-		},
-		{
-			name:     "versions policy",
-			config:   &config.ConfigKubernetes,
-			wantType: "versions",
-		},
+func TestNewDaysPolicy(t *testing.T) {
+	policy := NewDaysPolicy(12, 30)
+	if policy.Type() != "days" {
+		t.Errorf("Type() = %v, want days", policy.Type())
 	}
+	if policy.CriticalDays != 12 {
+		t.Errorf("CriticalDays = %v, want 12", policy.CriticalDays)
+	}
+	if policy.MaxDays != 30 {
+		t.Errorf("MaxDays = %v, want 30", policy.MaxDays)
+	}
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			policy := NewPolicy(tt.config)
-			if policy.Type() != tt.wantType {
-				t.Errorf("Type() = %v, want %v", policy.Type(), tt.wantType)
-			}
-		})
+func TestNewVersionsPolicy(t *testing.T) {
+	policy := NewVersionsPolicy(3)
+	if policy.Type() != "versions" {
+		t.Errorf("Type() = %v, want versions", policy.Type())
+	}
+	if policy.MaxMinorVersionsBehind != 3 {
+		t.Errorf("MaxMinorVersionsBehind = %v, want 3", policy.MaxMinorVersionsBehind)
 	}
 }
 

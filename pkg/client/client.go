@@ -1,0 +1,175 @@
+package client
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/Masterminds/semver/v3"
+	gh "github.com/google/go-github/v57/github"
+	"github.com/nickromney-org/github-actions-runner-version/pkg/types"
+	"golang.org/x/oauth2"
+)
+
+// Client wraps the GitHub API client
+type Client struct {
+	gh    *gh.Client
+	Owner string
+	Repo  string
+}
+
+// NewClient creates a new GitHub API client
+func NewClient(token, owner, repo string) *Client {
+	var client *gh.Client
+
+	if token != "" {
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: token},
+		)
+		tc := oauth2.NewClient(context.Background(), ts)
+		client = gh.NewClient(tc)
+	} else {
+		client = gh.NewClient(nil)
+	}
+
+	return &Client{
+		gh:    client,
+		Owner: owner,
+		Repo:  repo,
+	}
+}
+
+// GetLatestRelease fetches the latest release from GitHub
+func (c *Client) GetLatestRelease(ctx context.Context) (*types.Release, error) {
+	release, _, err := c.gh.Repositories.GetLatestRelease(ctx, c.Owner, c.Repo)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest release: %w", err)
+	}
+
+	return c.parseRelease(release)
+}
+
+// GetAllReleases fetches all releases from GitHub
+func (c *Client) GetAllReleases(ctx context.Context) ([]types.Release, error) {
+	var allReleases []types.Release
+
+	opts := &gh.ListOptions{PerPage: 100}
+
+	for page := 1; page <= 10; page++ { // Safety limit of 10 pages
+		opts.Page = page
+
+		releases, resp, err := c.gh.Repositories.ListReleases(ctx, c.Owner, c.Repo, opts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list releases (page %d): %w", page, err)
+		}
+
+		for _, ghRelease := range releases {
+			// Skip drafts and prereleases
+			if ghRelease.GetDraft() || ghRelease.GetPrerelease() {
+				continue
+			}
+
+			release, err := c.parseRelease(ghRelease)
+			if err != nil {
+				// Log but don't fail - just skip invalid releases
+				continue
+			}
+
+			allReleases = append(allReleases, *release)
+		}
+
+		// Check if we've reached the last page
+		if resp.NextPage == 0 {
+			break
+		}
+	}
+
+	return allReleases, nil
+}
+
+// GetRecentReleases fetches only the N most recent releases
+func (c *Client) GetRecentReleases(ctx context.Context, count int) ([]types.Release, error) {
+	opts := &gh.ListOptions{PerPage: count}
+
+	releases, _, err := c.gh.Repositories.ListReleases(ctx, c.Owner, c.Repo, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list recent releases: %w", err)
+	}
+
+	var result []types.Release
+	for _, ghRelease := range releases {
+		// Skip drafts and prereleases
+		if ghRelease.GetDraft() || ghRelease.GetPrerelease() {
+			continue
+		}
+
+		release, err := c.parseRelease(ghRelease)
+		if err != nil {
+			// Log but don't fail - just skip invalid releases
+			continue
+		}
+
+		result = append(result, *release)
+	}
+
+	return result, nil
+}
+
+// parseRelease converts a GitHub release to our Release type
+func (c *Client) parseRelease(ghRelease *gh.RepositoryRelease) (*types.Release, error) {
+	tagName := ghRelease.GetTagName()
+	if tagName == "" {
+		return nil, fmt.Errorf("release has no tag name")
+	}
+
+	// Parse version (removing 'v' prefix if present)
+	ver, err := semver.NewVersion(tagName)
+	if err != nil {
+		return nil, fmt.Errorf("invalid version %q: %w", tagName, err)
+	}
+
+	// Parse published date
+	publishedAt := ghRelease.GetPublishedAt()
+	if publishedAt.IsZero() {
+		return nil, fmt.Errorf("release has no published date")
+	}
+
+	return &types.Release{
+		Version:     ver,
+		PublishedAt: publishedAt.Time,
+		URL:         ghRelease.GetHTMLURL(),
+	}, nil
+}
+
+// MockClient is a mock implementation for testing
+type MockClient struct {
+	LatestRelease *types.Release
+	AllReleases   []types.Release
+	Error         error
+}
+
+// GetLatestRelease returns the mocked latest release
+func (m *MockClient) GetLatestRelease(ctx context.Context) (*types.Release, error) {
+	if m.Error != nil {
+		return nil, m.Error
+	}
+	return m.LatestRelease, nil
+}
+
+// GetAllReleases returns the mocked releases
+func (m *MockClient) GetAllReleases(ctx context.Context) ([]types.Release, error) {
+	if m.Error != nil {
+		return nil, m.Error
+	}
+	return m.AllReleases, nil
+}
+
+// GetRecentReleases returns the first N mocked releases
+func (m *MockClient) GetRecentReleases(ctx context.Context, count int) ([]types.Release, error) {
+	if m.Error != nil {
+		return nil, m.Error
+	}
+	if len(m.AllReleases) <= count {
+		return m.AllReleases, nil
+	}
+	return m.AllReleases[:count], nil
+}
