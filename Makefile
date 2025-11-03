@@ -38,6 +38,19 @@ build-all: ## Build for all platforms
 install: ## Install the binary to GOPATH/bin
 	CGO_ENABLED=0 $(GOINSTALL) ${BUILDFLAGS} ${LDFLAGS} .
 
+size: build ## Show binary size
+	@echo "Binary sizes:"
+	@ls -lh bin/${BINARY_NAME} | awk '{print "  " $$9 ": " $$5}'
+	@stat -f%z bin/${BINARY_NAME} 2>/dev/null | awk '{printf "  Size: %.2f MB\n", $$1/1024/1024}' || stat -c%s bin/${BINARY_NAME} | awk '{printf "  Size: %.2f MB\n", $$1/1024/1024}'
+
+size-all: build-all ## Show binary sizes for all platforms
+	@echo "Binary sizes by platform:"
+	@for f in bin/${BINARY_NAME}-*; do \
+		SIZE=$$(stat -f%z "$$f" 2>/dev/null || stat -c%s "$$f"); \
+		SIZE_MB=$$(echo "scale=2; $$SIZE/1024/1024" | bc); \
+		printf "  %s: %s MB\n" "$$(basename $$f)" "$$SIZE_MB"; \
+	done
+
 clean: ## Clean build artifacts
 	$(GOCLEAN)
 	rm -rf bin/
