@@ -27,7 +27,8 @@ func main() {
 	output := flag.String("output", "internal/data/releases.json", "Output file")
 	flag.Parse()
 
-	client := github.NewClient(*token)
+	// TODO: owner/repo will be configurable in Phase 3.2
+	client := github.NewClient(*token, "actions", "runner")
 	ctx := context.Background()
 
 	fmt.Println("Fetching all releases from GitHub API...")

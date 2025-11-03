@@ -139,7 +139,8 @@ func run(cmd *cobra.Command, args []string) error {
 	token := detectGitHubToken(githubToken)
 
 	// Create GitHub client
-	client := github.NewClient(token)
+	// TODO: owner/repo will be configurable in Phase 2.1
+	client := github.NewClient(token, "actions", "runner")
 
 	// Create checker with config
 	checker := version.NewChecker(client, version.CheckerConfig{

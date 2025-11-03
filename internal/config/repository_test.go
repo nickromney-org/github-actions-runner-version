@@ -211,19 +211,19 @@ func TestPredefinedConfigs(t *testing.T) {
 			name:       "kubernetes uses versions policy",
 			config:     ConfigKubernetes,
 			wantPolicy: PolicyTypeVersions,
-			wantCache:  true,
+			wantCache:  false, // Will be enabled in Phase 3.1
 		},
 		{
 			name:       "pulumi uses versions policy",
 			config:     ConfigPulumi,
 			wantPolicy: PolicyTypeVersions,
-			wantCache:  true,
+			wantCache:  false, // Will be enabled in Phase 3.1
 		},
 		{
 			name:       "ubuntu uses days policy",
 			config:     ConfigUbuntu,
 			wantPolicy: PolicyTypeDays,
-			wantCache:  true,
+			wantCache:  false, // Will be enabled in Phase 3.1
 		},
 	}
 

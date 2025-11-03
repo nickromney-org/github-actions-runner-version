@@ -15,7 +15,8 @@ func main() {
 	token := flag.String("token", os.Getenv("GITHUB_TOKEN"), "GitHub token")
 	flag.Parse()
 
-	client := github.NewClient(*token)
+	// TODO: owner/repo will be configurable in Phase 3.2
+	client := github.NewClient(*token, "actions", "runner")
 	ctx := context.Background()
 
 	// Load embedded releases

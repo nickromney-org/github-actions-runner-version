@@ -11,18 +11,15 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const (
-	owner = "actions"
-	repo  = "runner"
-)
-
 // Client wraps the GitHub API client
 type Client struct {
-	gh *gh.Client
+	gh    *gh.Client
+	Owner string
+	Repo  string
 }
 
 // NewClient creates a new GitHub API client
-func NewClient(token string) *Client {
+func NewClient(token, owner, repo string) *Client {
 	var client *gh.Client
 
 	if token != "" {
@@ -35,12 +32,16 @@ func NewClient(token string) *Client {
 		client = gh.NewClient(nil)
 	}
 
-	return &Client{gh: client}
+	return &Client{
+		gh:    client,
+		Owner: owner,
+		Repo:  repo,
+	}
 }
 
 // GetLatestRelease fetches the latest release from GitHub
 func (c *Client) GetLatestRelease(ctx context.Context) (*version.Release, error) {
-	release, _, err := c.gh.Repositories.GetLatestRelease(ctx, owner, repo)
+	release, _, err := c.gh.Repositories.GetLatestRelease(ctx, c.Owner, c.Repo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get latest release: %w", err)
 	}
@@ -57,7 +58,7 @@ func (c *Client) GetAllReleases(ctx context.Context) ([]version.Release, error) 
 	for page := 1; page <= 10; page++ { // Safety limit of 10 pages
 		opts.Page = page
 
-		releases, resp, err := c.gh.Repositories.ListReleases(ctx, owner, repo, opts)
+		releases, resp, err := c.gh.Repositories.ListReleases(ctx, c.Owner, c.Repo, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list releases (page %d): %w", page, err)
 		}
@@ -90,7 +91,7 @@ func (c *Client) GetAllReleases(ctx context.Context) ([]version.Release, error) 
 func (c *Client) GetRecentReleases(ctx context.Context, count int) ([]version.Release, error) {
 	opts := &gh.ListOptions{PerPage: count}
 
-	releases, _, err := c.gh.Repositories.ListReleases(ctx, owner, repo, opts)
+	releases, _, err := c.gh.Repositories.ListReleases(ctx, c.Owner, c.Repo, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list recent releases: %w", err)
 	}
@@ -175,11 +176,11 @@ func (m *MockClient) GetRecentReleases(ctx context.Context, count int) ([]versio
 }
 
 // Helper for creating test releases
-func NewTestRelease(versionStr string, daysAgo int) version.Release {
+func NewTestRelease(versionStr, owner, repo string, daysAgo int) version.Release {
 	v := semver.MustParse(versionStr)
 	return version.Release{
 		Version:     v,
 		PublishedAt: time.Now().AddDate(0, 0, -daysAgo),
-		URL:         fmt.Sprintf("https://github.com/actions/runner/releases/tag/v%s", versionStr),
+		URL:         fmt.Sprintf("https://github.com/%s/%s/releases/tag/v%s", owner, repo, versionStr),
 	}
 }

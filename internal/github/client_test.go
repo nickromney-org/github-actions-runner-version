@@ -28,12 +28,18 @@ func TestNewClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := NewClient(tt.token)
+			client := NewClient(tt.token, "actions", "runner")
 			if client == nil {
 				t.Fatal("NewClient returned nil")
 			}
 			if client.gh == nil {
 				t.Fatal("client.gh is nil")
+			}
+			if client.Owner != "actions" {
+				t.Errorf("Owner = %v, want actions", client.Owner)
+			}
+			if client.Repo != "runner" {
+				t.Errorf("Repo = %v, want runner", client.Repo)
 			}
 		})
 	}
@@ -100,7 +106,7 @@ func TestParseRelease(t *testing.T) {
 		},
 	}
 
-	client := NewClient("")
+	client := NewClient("", "actions", "runner")
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -141,7 +147,7 @@ func TestMockClient(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("GetLatestRelease success", func(t *testing.T) {
-		expected := NewTestRelease("2.329.0", 0)
+		expected := NewTestRelease("2.329.0", "actions", "runner", 0)
 		mock := &MockClient{
 			LatestRelease: &expected,
 		}
@@ -169,9 +175,9 @@ func TestMockClient(t *testing.T) {
 
 	t.Run("GetAllReleases success", func(t *testing.T) {
 		releases := []version.Release{
-			NewTestRelease("2.329.0", 0),
-			NewTestRelease("2.328.0", 5),
-			NewTestRelease("2.327.1", 10),
+			NewTestRelease("2.329.0", "actions", "runner", 0),
+			NewTestRelease("2.328.0", "actions", "runner", 5),
+			NewTestRelease("2.327.1", "actions", "runner", 10),
 		}
 		mock := &MockClient{
 			AllReleases: releases,
@@ -200,10 +206,10 @@ func TestMockClient(t *testing.T) {
 
 	t.Run("GetRecentReleases success", func(t *testing.T) {
 		releases := []version.Release{
-			NewTestRelease("2.329.0", 0),
-			NewTestRelease("2.328.0", 5),
-			NewTestRelease("2.327.1", 10),
-			NewTestRelease("2.327.0", 15),
+			NewTestRelease("2.329.0", "actions", "runner", 0),
+			NewTestRelease("2.328.0", "actions", "runner", 5),
+			NewTestRelease("2.327.1", "actions", "runner", 10),
+			NewTestRelease("2.327.0", "actions", "runner", 15),
 		}
 		mock := &MockClient{
 			AllReleases: releases,
@@ -224,8 +230,8 @@ func TestMockClient(t *testing.T) {
 
 	t.Run("GetRecentReleases all releases", func(t *testing.T) {
 		releases := []version.Release{
-			NewTestRelease("2.329.0", 0),
-			NewTestRelease("2.328.0", 5),
+			NewTestRelease("2.329.0", "actions", "runner", 0),
+			NewTestRelease("2.328.0", "actions", "runner", 5),
 		}
 		mock := &MockClient{
 			AllReleases: releases,
@@ -305,7 +311,7 @@ func TestNewTestRelease(t *testing.T) {
 				}()
 			}
 
-			release := NewTestRelease(tt.version, tt.daysAgo)
+			release := NewTestRelease(tt.version, "actions", "runner", tt.daysAgo)
 
 			if tt.wantPanic {
 				return
