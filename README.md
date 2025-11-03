@@ -92,10 +92,7 @@ github-release-version-checker -c 2.328.0 --ci
 **Kubernetes (version-based policy: 3 minor versions)**
 
 ```bash
-# Short form (looks up kubernetes/kubernetes)
-github-release-version-checker --repo kubernetes -c 1.31.12
-
-# Full repository path
+github-release-version-checker --repo kubernetes/kubernetes -c 1.31.12
 github-release-version-checker --repo kubernetes/kubernetes -c 1.28.0
 ```
 

@@ -91,11 +91,6 @@ func GetPredefinedConfig(name string) (*RepositoryConfig, error) {
 
 // ParseRepositoryString parses "owner/repo" format or URL
 func ParseRepositoryString(repoStr string) (*RepositoryConfig, error) {
-	// Try to parse as predefined config first
-	if config, err := GetPredefinedConfig(repoStr); err == nil {
-		return config, nil
-	}
-
 	// Check if it's a GitHub URL
 	if strings.Contains(repoStr, "github.com") {
 		// Extract owner/repo from URL
@@ -111,7 +106,24 @@ func ParseRepositoryString(repoStr string) (*RepositoryConfig, error) {
 	// Parse as owner/repo
 	parts := strings.Split(repoStr, "/")
 	if len(parts) != 2 {
-		return nil, fmt.Errorf("invalid repository format: %s (expected: owner/repo or predefined name)", repoStr)
+		return nil, fmt.Errorf("invalid repository format: %s (expected: owner/repo)", repoStr)
+	}
+
+	// Check if this matches a predefined config
+	fullName := fmt.Sprintf("%s/%s", parts[0], parts[1])
+
+	// Return predefined config if it exists
+	if fullName == "actions/runner" {
+		return &ConfigActionsRunner, nil
+	}
+	if fullName == "kubernetes/kubernetes" {
+		return &ConfigKubernetes, nil
+	}
+	if fullName == "pulumi/pulumi" {
+		return &ConfigPulumi, nil
+	}
+	if fullName == "canonical/ubuntu" {
+		return &ConfigUbuntu, nil
 	}
 
 	// Default to version-based policy with conservative defaults

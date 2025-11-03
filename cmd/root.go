@@ -67,7 +67,7 @@ Supports multiple repositories with both time-based (days) and version-based
   github-release-version-checker -c 2.328.0
 
   # Kubernetes (version-based: 3 minor versions supported)
-  github-release-version-checker --repo kubernetes -c 1.31.12
+  github-release-version-checker --repo kubernetes/kubernetes -c 1.31.12
   github-release-version-checker --repo kubernetes/kubernetes -c 1.28.0
 
   # Pulumi (version-based policy)
@@ -83,7 +83,7 @@ Supports multiple repositories with both time-based (days) and version-based
   github-release-version-checker -c 2.328.0 --json
 
   # CI mode for GitHub Actions
-  github-release-version-checker --repo kubernetes -c 1.28.0 --ci`,
+  github-release-version-checker --repo kubernetes/kubernetes -c 1.28.0 --ci`,
 	RunE: run,
 }
 
@@ -100,7 +100,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&noCache, "no-cache", "n", false, "bypass embedded cache and always fetch from GitHub API")
 
 	// Multi-repository support flags
-	rootCmd.Flags().StringVarP(&repository, "repo", "r", "", "repository to check (e.g., 'actions/runner', 'kubernetes', 'pulumi/pulumi')")
+	rootCmd.Flags().StringVarP(&repository, "repo", "r", "", "repository to check (format: owner/repo, e.g., 'kubernetes/kubernetes', 'pulumi/pulumi')")
 	rootCmd.Flags().StringVar(&cachePath, "cache", "", "path to custom cache file")
 	rootCmd.Flags().StringVar(&policyType, "policy", "", "policy type: 'days' or 'versions' (auto-detected if not specified)")
 	rootCmd.Flags().IntVar(&maxVersions, "max-versions", 3, "maximum minor versions behind before expiry (for version-based policy)")
