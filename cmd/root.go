@@ -9,7 +9,10 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	colour "github.com/fatih/color"
+	"github.com/nickromney-org/github-actions-runner-version/internal/cache"
+	"github.com/nickromney-org/github-actions-runner-version/internal/config"
 	"github.com/nickromney-org/github-actions-runner-version/internal/github"
+	"github.com/nickromney-org/github-actions-runner-version/internal/policy"
 	"github.com/nickromney-org/github-actions-runner-version/internal/version"
 	"github.com/spf13/cobra"
 )
@@ -25,6 +28,12 @@ var (
 	githubToken       string
 	showVersion       bool
 	noCache           bool
+
+	// New flags for multi-repository support
+	repository  string
+	cachePath   string
+	policyType  string
+	maxVersions int
 
 	// Version information (set via SetVersionInfo from main)
 	appVersion = "dev"
@@ -48,19 +57,25 @@ func SetVersionInfo(version, build, commit string) {
 
 var rootCmd = &cobra.Command{
 	Use:   "runner-version-check",
-	Short: "Check GitHub Actions runner version status",
-	Long: `Check if your GitHub Actions self-hosted runner version is up to date.
+	Short: "Check GitHub release version status against expiry policies",
+	Long: `Check if versions are up to date against configurable expiry policies.
 
-According to GitHub's policy, runners must be updated within 30 days of any
-new release (major, minor, or patch). This tool helps you stay compliant.`,
-	Example: `  # Check latest version
+Supports multiple repositories with both time-based (days) and version-based
+(semantic versioning) policies. Defaults to GitHub Actions runner with 30-day policy.`,
+	Example: `  # Check latest GitHub Actions runner version (default)
   runner-version-check
 
-  # Check a specific version
+  # Check a specific runner version
   runner-version-check -c 2.327.1
 
-  # Verbose output with custom thresholds
-  runner-version-check -c 2.327.1 -v -d 10 -m 30
+  # Check Kubernetes version (version-based policy)
+  runner-version-check --repo kubernetes -c 1.28.0
+
+  # Check with custom repository
+  runner-version-check --repo pulumi/pulumi -c 3.95.0
+
+  # Use custom cache file
+  runner-version-check --repo kubernetes --cache /path/to/cache.json
 
   # JSON output for automation
   runner-version-check -c 2.327.1 --json`,
@@ -78,6 +93,12 @@ func init() {
 	rootCmd.Flags().StringVarP(&githubToken, "token", "t", os.Getenv("GITHUB_TOKEN"), "GitHub token (or GITHUB_TOKEN env var)")
 	rootCmd.Flags().BoolVar(&showVersion, "version", false, "show version information")
 	rootCmd.Flags().BoolVarP(&noCache, "no-cache", "n", false, "bypass embedded cache and always fetch from GitHub API")
+
+	// Multi-repository support flags
+	rootCmd.Flags().StringVarP(&repository, "repo", "r", "", "repository to check (e.g., 'actions/runner', 'kubernetes', 'pulumi/pulumi')")
+	rootCmd.Flags().StringVar(&cachePath, "cache", "", "path to custom cache file")
+	rootCmd.Flags().StringVar(&policyType, "policy", "", "policy type: 'days' or 'versions' (auto-detected if not specified)")
+	rootCmd.Flags().IntVar(&maxVersions, "max-versions", 3, "maximum minor versions behind before expiry (for version-based policy)")
 }
 
 func Execute() error {
@@ -138,16 +159,63 @@ func run(cmd *cobra.Command, args []string) error {
 	// Auto-detect GitHub token from multiple sources if not provided
 	token := detectGitHubToken(githubToken)
 
-	// Create GitHub client
-	// TODO: owner/repo will be configurable in Phase 2.1
-	client := github.NewClient(token, "actions", "runner")
+	// Resolve repository configuration
+	var repoConfig *config.RepositoryConfig
+	var err error
 
-	// Create checker with config
-	checker := version.NewChecker(client, version.CheckerConfig{
-		CriticalAgeDays: criticalAgeDays,
-		MaxAgeDays:      maxAgeDays,
+	if repository != "" {
+		// Parse user-provided repository
+		repoConfig, err = config.ParseRepositoryString(repository)
+		if err != nil {
+			return fmt.Errorf("invalid repository: %w", err)
+		}
+	} else {
+		// Default to actions/runner
+		repoConfig = &config.ConfigActionsRunner
+	}
+
+	// Override policy type if specified
+	if policyType != "" {
+		switch strings.ToLower(policyType) {
+		case "days":
+			repoConfig.PolicyType = config.PolicyTypeDays
+		case "versions":
+			repoConfig.PolicyType = config.PolicyTypeVersions
+		default:
+			return fmt.Errorf("invalid policy type %q: must be 'days' or 'versions'", policyType)
+		}
+	}
+
+	// Override max versions if specified and using version policy
+	if cmd.Flags().Changed("max-versions") {
+		repoConfig.MaxVersionsBehind = maxVersions
+	}
+
+	// Override critical/max days if specified and using days policy
+	if repoConfig.PolicyType == config.PolicyTypeDays {
+		if cmd.Flags().Changed("critical-days") {
+			repoConfig.CriticalDays = criticalAgeDays
+		}
+		if cmd.Flags().Changed("max-days") {
+			repoConfig.MaxDays = maxAgeDays
+		}
+	}
+
+	// Create GitHub client
+	client := github.NewClient(token, repoConfig.Owner, repoConfig.Repo)
+
+	// Create cache manager (not used yet, but will be in future phases)
+	_ = cache.NewManager(cachePath)
+
+	// Create policy
+	pol := policy.NewPolicy(repoConfig)
+
+	// Create checker with policy
+	checker := version.NewCheckerWithPolicy(client, version.CheckerConfig{
+		CriticalAgeDays: repoConfig.CriticalDays,
+		MaxAgeDays:      repoConfig.MaxDays,
 		NoCache:         noCache,
-	})
+	}, pol)
 
 	// Run analysis
 	analysis, err := checker.Analyse(cmd.Context(), comparisonVersion)
