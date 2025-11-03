@@ -21,7 +21,7 @@ This is a Go CLI tool that checks GitHub release versions against configurable e
 
 ### Building
 ```bash
-# Build for current platform (output: bin/github-actions-runner-version)
+# Build for current platform (output: bin/github-release-version-checker)
 make build
 
 # Build for all platforms (darwin/linux/windows, amd64/arm64)
@@ -160,7 +160,7 @@ When using `--ci` flag for GitHub Actions:
 
 - **Repository**: https://github.com/nickromney-org/github-actions-runner-version
 - **Module Path**: `github.com/nickromney-org/github-actions-runner-version`
-- **Binary Name**: `github-actions-runner-version`
+- **Binary Name**: `github-release-version-checker`
 
 Note: The current go.mod may still reference placeholder paths (`github.com/yourusername/runner-version-checker`) that should be updated to the correct module path above.
 

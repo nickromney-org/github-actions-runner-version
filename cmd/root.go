@@ -56,29 +56,29 @@ func SetVersionInfo(version, build, commit string) {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "runner-version-check",
+	Use:   "github-release-version-checker",
 	Short: "Check GitHub release version status against expiry policies",
 	Long: `Check if versions are up to date against configurable expiry policies.
 
 Supports multiple repositories with both time-based (days) and version-based
 (semantic versioning) policies. Defaults to GitHub Actions runner with 30-day policy.`,
 	Example: `  # Check latest GitHub Actions runner version (default)
-  runner-version-check
+  github-release-version-checker
 
   # Check a specific runner version
-  runner-version-check -c 2.327.1
+  github-release-version-checker -c 2.327.1
 
   # Check Kubernetes version (version-based policy)
-  runner-version-check --repo kubernetes -c 1.28.0
+  github-release-version-checker --repo kubernetes -c 1.28.0
 
   # Check with custom repository
-  runner-version-check --repo pulumi/pulumi -c 3.95.0
+  github-release-version-checker --repo pulumi/pulumi -c 3.95.0
 
   # Use custom cache file
-  runner-version-check --repo kubernetes --cache /path/to/cache.json
+  github-release-version-checker --repo kubernetes --cache /path/to/cache.json
 
   # JSON output for automation
-  runner-version-check -c 2.327.1 --json`,
+  github-release-version-checker -c 2.327.1 --json`,
 	RunE: run,
 }
 
@@ -145,7 +145,7 @@ func run(cmd *cobra.Command, args []string) error {
 
 	// Show version if requested
 	if showVersion {
-		fmt.Printf("github-actions-runner-version %s\n", appVersion)
+		fmt.Printf("github-release-version-checker %s\n", appVersion)
 		fmt.Printf("Build time: %s\n", buildTime)
 		fmt.Printf("Git commit: %s\n", gitCommit)
 		return nil
@@ -284,7 +284,7 @@ func run(cmd *cobra.Command, args []string) error {
 				yellow.Println("   Authenticated requests get 5,000 per hour.")
 				yellow.Println()
 				yellow.Println("💡 Authentication options (auto-detected in order):")
-				yellow.Println("   1. Use the -t flag: runner-version-check -t YOUR_TOKEN")
+				yellow.Println("   1. Use the -t flag: github-release-version-checker -t YOUR_TOKEN")
 				yellow.Println("   2. Set GITHUB_TOKEN environment variable")
 				yellow.Println("   3. GitHub CLI: gh auth login (automatically detected)")
 				yellow.Println("   4. GitHub Actions: GITHUB_TOKEN is auto-available")

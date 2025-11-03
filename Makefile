@@ -1,7 +1,7 @@
 .PHONY: build clean install test lint fmt help
 
 # Binary name
-BINARY_NAME=github-actions-runner-version
+BINARY_NAME=github-release-version-checker
 VERSION?=dev
 BUILD_TIME=$(shell date -u '+%Y-%m-%d_%H:%M:%S')
 GIT_COMMIT=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
