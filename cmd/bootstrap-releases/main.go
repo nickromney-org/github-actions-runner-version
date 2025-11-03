@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/nickromney-org/github-actions-runner-version/internal/config"
-	"github.com/nickromney-org/github-actions-runner-version/pkg/client"
+	"github.com/nickromney-org/github-release-version-checker/internal/config"
+	"github.com/nickromney-org/github-release-version-checker/pkg/client"
 )
 
 type ReleaseJSON struct {

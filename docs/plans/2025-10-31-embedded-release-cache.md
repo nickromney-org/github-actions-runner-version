@@ -82,8 +82,8 @@ import (
  "os"
  "time"
 
- "github.com/nickromney-org/github-actions-runner-version/internal/github"
- "github.com/nickromney-org/github-actions-runner-version/internal/version"
+ "github.com/nickromney-org/github-release-version-checker/internal/github"
+ "github.com/nickromney-org/github-release-version-checker/internal/version"
 )
 
 type ReleaseJSON struct {
@@ -237,7 +237,7 @@ import (
  "time"
 
  "github.com/Masterminds/semver/v3"
- "github.com/nickromney-org/github-actions-runner-version/internal/version"
+ "github.com/nickromney-org/github-release-version-checker/internal/version"
 )
 
 //go:embed releases.json
@@ -629,7 +629,7 @@ import (
  "time"
 
  "github.com/Masterminds/semver/v3"
- "github.com/nickromney-org/github-actions-runner-version/internal/data"
+ "github.com/nickromney-org/github-release-version-checker/internal/data"
 )
 ```
 
@@ -746,8 +746,8 @@ import (
  "os"
  "time"
 
- "github.com/nickromney-org/github-actions-runner-version/internal/data"
- "github.com/nickromney-org/github-actions-runner-version/internal/github"
+ "github.com/nickromney-org/github-release-version-checker/internal/data"
+ "github.com/nickromney-org/github-release-version-checker/internal/github"
 )
 
 func main() {
@@ -915,7 +915,7 @@ In `.github/workflows/check-runner.yml`, find the "Download version checker" ste
  - name: Download version checker
  run: |
  # Use correct repository URL and binary name
- curl -LO https://github.com/nickromney-org/github-actions-runner-version/releases/latest/download/github-actions-runner-version-linux-amd64
+ curl -LO https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-actions-runner-version-linux-amd64
  chmod +x github-actions-runner-version-linux-amd64
  sudo mv github-actions-runner-version-linux-amd64 /usr/local/bin/github-actions-runner-version
 ```

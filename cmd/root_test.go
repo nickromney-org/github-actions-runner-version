@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/nickromney-org/github-actions-runner-version/pkg/checker"
+	"github.com/nickromney-org/github-release-version-checker/pkg/checker"
 )
 
 // Test helpers

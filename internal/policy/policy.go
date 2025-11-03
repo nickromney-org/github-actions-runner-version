@@ -1,8 +1,8 @@
 package policy
 
 import (
-	"github.com/nickromney-org/github-actions-runner-version/internal/config"
-	"github.com/nickromney-org/github-actions-runner-version/pkg/policy"
+	"github.com/nickromney-org/github-release-version-checker/internal/config"
+	"github.com/nickromney-org/github-release-version-checker/pkg/policy"
 )
 
 // NewPolicy creates a policy from config

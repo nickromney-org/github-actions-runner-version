@@ -14,17 +14,17 @@ RUN go mod download
 COPY . .
 
 # Build binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -trimpath -ldflags="-w -s" -o runner-version-check .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -trimpath -ldflags="-w -s" -o github-release-version-checker .
 
 # Final stage
-FROM alpine:latest
+FROM alpine:3.18
 
 RUN apk --no-cache add ca-certificates tzdata
 
 WORKDIR /app
 
 # Copy binary from builder
-COPY --from=builder /build/runner-version-check .
+COPY --from=builder /build/github-release-version-checker .
 
 # Create non-root user
 RUN adduser -D -u 1000 appuser && \
@@ -32,4 +32,8 @@ RUN adduser -D -u 1000 appuser && \
 
 USER appuser
 
-ENTRYPOINT ["/app/runner-version-check"]
+# Health check - verify binary is executable
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=1 \
+    CMD ["/app/github-release-version-checker", "--version"] || exit 1
+
+ENTRYPOINT ["/app/github-release-version-checker"]

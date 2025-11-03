@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/nickromney-org/github-actions-runner-version/internal/config"
-	"github.com/nickromney-org/github-actions-runner-version/internal/data"
-	"github.com/nickromney-org/github-actions-runner-version/pkg/checker"
-	"github.com/nickromney-org/github-actions-runner-version/pkg/client"
-	"github.com/nickromney-org/github-actions-runner-version/pkg/types"
+	"github.com/nickromney-org/github-release-version-checker/internal/config"
+	"github.com/nickromney-org/github-release-version-checker/internal/data"
+	"github.com/nickromney-org/github-release-version-checker/pkg/checker"
+	"github.com/nickromney-org/github-release-version-checker/pkg/client"
+	"github.com/nickromney-org/github-release-version-checker/pkg/types"
 )
 
 func main() {

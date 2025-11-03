@@ -1,4 +1,4 @@
-module github.com/nickromney-org/github-actions-runner-version
+module github.com/nickromney-org/github-release-version-checker
 
 go 1.21
 

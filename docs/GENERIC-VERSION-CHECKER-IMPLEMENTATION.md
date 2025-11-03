@@ -176,7 +176,7 @@ package policy
 import (
  "time"
  "github.com/Masterminds/semver/v3"
- "github.com/nickromney-org/github-actions-runner-version/internal/version"
+ "github.com/nickromney-org/github-release-version-checker/internal/version"
 )
 
 // PolicyResult contains the result of a policy evaluation
@@ -325,7 +325,7 @@ import (
  "encoding/json"
  "fmt"
  "os"
- "github.com/nickromney-org/github-actions-runner-version/internal/version"
+ "github.com/nickromney-org/github-release-version-checker/internal/version"
 )
 
 //go:embed data/*.json

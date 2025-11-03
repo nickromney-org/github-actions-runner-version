@@ -129,7 +129,7 @@ import (
  "os"
  "time"
 
- "github.com/nickromney-org/github-actions-runner-version/internal/github"
+ "github.com/nickromney-org/github-release-version-checker/internal/github"
 )
 
 func main() {
@@ -260,7 +260,7 @@ import (
  "time"
 
  "github.com/Masterminds/semver/v3"
- "github.com/nickromney-org/github-actions-runner-version/internal/version"
+ "github.com/nickromney-org/github-release-version-checker/internal/version"
 )
 
 //go:embed releases.json

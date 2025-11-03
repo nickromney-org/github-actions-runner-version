@@ -27,22 +27,22 @@ A blazingly fast, type-safe CLI tool to check if your GitHub Actions self-hosted
 
 #### Option 1: Download Binary
 
-Download the latest release for your platform from [GitHub Releases](https://github.com/nickromney-org/github-actions-runner-version/releases/latest):
+Download the latest release for your platform from [GitHub Releases](https://github.com/nickromney-org/github-release-version-checker/releases/latest):
 
 ```bash
 # Linux (x64)
-curl -LO https://github.com/nickromney-org/github-actions-runner-version/releases/latest/download/github-release-version-checker-linux-amd64
+curl -LO https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-release-version-checker-linux-amd64
 chmod +x github-release-version-checker-linux-amd64
 sudo mv github-release-version-checker-linux-amd64 /usr/local/bin/github-release-version-checker
 
 # macOS (Intel)
-curl -LO https://github.com/nickromney-org/github-actions-runner-version/releases/latest/download/github-release-version-checker-darwin-amd64
+curl -LO https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-release-version-checker-darwin-amd64
 chmod +x github-release-version-checker-darwin-amd64
 xattr -d com.apple.quarantine github-release-version-checker-darwin-amd64 # Remove macOS quarantine
 sudo mv github-release-version-checker-darwin-amd64 /usr/local/bin/github-release-version-checker
 
 # macOS (Apple Silicon)
-curl -LO https://github.com/nickromney-org/github-actions-runner-version/releases/latest/download/github-release-version-checker-darwin-arm64
+curl -LO https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-release-version-checker-darwin-arm64
 chmod +x github-release-version-checker-darwin-arm64
 xattr -d com.apple.quarantine github-release-version-checker-darwin-arm64 # Remove macOS quarantine
 sudo mv github-release-version-checker-darwin-arm64 /usr/local/bin/github-release-version-checker
@@ -55,8 +55,8 @@ sudo mv github-release-version-checker-darwin-arm64 /usr/local/bin/github-releas
 Building from source bypasses any code-signing issues and ensures you're running code you've verified:
 
 ```bash
-git clone https://github.com/nickromney-org/github-actions-runner-version.git
-cd github-actions-runner-version
+git clone https://github.com/nickromney-org/github-release-version-checker.git
+cd github-release-version-checker
 make build
 
 # Binary will be in bin/github-release-version-checker
@@ -66,7 +66,7 @@ sudo mv bin/github-release-version-checker /usr/local/bin/
 #### Option 3: Install with Go
 
 ```bash
-go install github.com/nickromney-org/github-actions-runner-version@latest
+go install github.com/nickromney-org/github-release-version-checker@latest
 ```
 
 ### Basic Usage
@@ -130,7 +130,7 @@ This package can be imported and used as a library in your own Go applications. 
 ### Installation
 
 ```bash
-go get github.com/nickromney-org/github-actions-runner-version
+go get github.com/nickromney-org/github-release-version-checker
 ```
 
 ### Quick Start
@@ -143,9 +143,9 @@ import (
  "fmt"
  "os"
 
- "github.com/nickromney-org/github-actions-runner-version/pkg/checker"
- "github.com/nickromney-org/github-actions-runner-version/pkg/client"
- "github.com/nickromney-org/github-actions-runner-version/pkg/policy"
+ "github.com/nickromney-org/github-release-version-checker/pkg/checker"
+ "github.com/nickromney-org/github-release-version-checker/pkg/client"
+ "github.com/nickromney-org/github-release-version-checker/pkg/policy"
 )
 
 func main() {
@@ -280,7 +280,7 @@ go run main.go
 
 Complete API documentation is available at:
 
- **[pkg.go.dev/github.com/nickromney-org/github-actions-runner-version](https://pkg.go.dev/github.com/nickromney-org/github-actions-runner-version)**
+ **[pkg.go.dev/github.com/nickromney-org/github-release-version-checker](https://pkg.go.dev/github.com/nickromney-org/github-release-version-checker)**
 
 ## CLI Usage Examples
 

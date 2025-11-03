@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nickromney-org/github-actions-runner-version/internal/config"
+	"github.com/nickromney-org/github-release-version-checker/internal/config"
 )
 
 func TestManager_LoadCache_Embedded(t *testing.T) {
