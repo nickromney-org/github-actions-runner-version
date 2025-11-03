@@ -674,8 +674,8 @@ make test
 # Run tests with coverage
 make test-coverage
 
-# Run specific test
-go test -v ./pkg/checker -run TestAnalyse
+# Run specific test (using British spelling as per project convention)
+go test -v ./pkg/checker -run TestAnalyse_ExpiredVersion
 ```
 
 Example test output:

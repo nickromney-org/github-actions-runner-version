@@ -289,10 +289,10 @@ func (c *Checker) CalculateRecentReleases(allReleases []types.Release, compariso
 			}
 		}
 
-		// Detect versioning scheme: check if major versions change frequently
-		// Count unique major versions in recent releases
-		// If we see multiple major versions, it's major-version scheme (Node.js)
-		// If all same major, it's minor-version scheme (Kubernetes)
+		// Detect versioning scheme: check if there are 2 or more unique major versions in recent releases.
+		// Count unique major versions in recent releases (up to 20).
+		// If there are 2 or more unique major versions in the sample, it's a major-version scheme (Node.js style).
+		// If all releases have the same major version, it's a minor-version scheme (Kubernetes style).
 		uniqueMajors := make(map[uint64]bool)
 		sampleSize := len(sorted)
 		if sampleSize > 20 {
