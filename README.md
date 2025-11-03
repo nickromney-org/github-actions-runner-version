@@ -56,7 +56,7 @@ Building from source bypasses any code-signing issues and ensures you're running
 
 ```bash
 git clone https://github.com/nickromney-org/github-release-version-checker.git
-cd github-actions-runner-version
+cd github-release-version-checker
 make build
 
 # Binary will be in bin/github-release-version-checker

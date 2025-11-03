@@ -17,7 +17,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -trimpath -ldflags="-w -s" -o github-release-version-checker .
 
 # Final stage
-FROM alpine:3.19
+FROM alpine:3.18
 
 RUN apk --no-cache add ca-certificates tzdata
 
