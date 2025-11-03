@@ -24,13 +24,13 @@ func TestDaysPolicy_Evaluate(t *testing.T) {
 	}
 
 	tests := []struct {
-		name            string
-		comparison      string
-		newerReleases   []types.Release
-		wantExpired     bool
-		wantCritical    bool
-		wantWarning     bool
-		wantDaysOld     int
+		name          string
+		comparison    string
+		newerReleases []types.Release
+		wantExpired   bool
+		wantCritical  bool
+		wantWarning   bool
+		wantDaysOld   int
 	}{
 		{
 			name:          "no newer releases",
@@ -119,23 +119,23 @@ func TestVersionsPolicy_Evaluate(t *testing.T) {
 	}
 
 	tests := []struct {
-		name             string
-		comparison       string
-		latest           string
-		newerReleases    []types.Release
-		wantExpired      bool
-		wantCritical     bool
-		wantWarning      bool
+		name               string
+		comparison         string
+		latest             string
+		newerReleases      []types.Release
+		wantExpired        bool
+		wantCritical       bool
+		wantWarning        bool
 		wantVersionsBehind int
 	}{
 		{
-			name:          "on latest version",
-			comparison:    "1.34.0",
-			latest:        "1.34.0",
-			newerReleases: []types.Release{},
-			wantExpired:   false,
-			wantCritical:  false,
-			wantWarning:   false,
+			name:               "on latest version",
+			comparison:         "1.34.0",
+			latest:             "1.34.0",
+			newerReleases:      []types.Release{},
+			wantExpired:        false,
+			wantCritical:       false,
+			wantWarning:        false,
 			wantVersionsBehind: 0,
 		},
 		{
@@ -145,9 +145,9 @@ func TestVersionsPolicy_Evaluate(t *testing.T) {
 			newerReleases: []types.Release{
 				makeRelease("1.34.0", 5),
 			},
-			wantExpired:   false,
-			wantCritical:  false,
-			wantWarning:   true,
+			wantExpired:        false,
+			wantCritical:       false,
+			wantWarning:        true,
 			wantVersionsBehind: 1,
 		},
 		{
@@ -158,9 +158,9 @@ func TestVersionsPolicy_Evaluate(t *testing.T) {
 				makeRelease("1.34.0", 5),
 				makeRelease("1.33.0", 35),
 			},
-			wantExpired:   false,
-			wantCritical:  false,
-			wantWarning:   true,
+			wantExpired:        false,
+			wantCritical:       false,
+			wantWarning:        true,
 			wantVersionsBehind: 2,
 		},
 		{
@@ -172,9 +172,9 @@ func TestVersionsPolicy_Evaluate(t *testing.T) {
 				makeRelease("1.33.0", 35),
 				makeRelease("1.32.0", 65),
 			},
-			wantExpired:   false,
-			wantCritical:  true,
-			wantWarning:   false,
+			wantExpired:        false,
+			wantCritical:       true,
+			wantWarning:        false,
 			wantVersionsBehind: 3,
 		},
 		{
@@ -187,9 +187,9 @@ func TestVersionsPolicy_Evaluate(t *testing.T) {
 				makeRelease("1.32.0", 65),
 				makeRelease("1.31.0", 95),
 			},
-			wantExpired:   true,
-			wantCritical:  false,
-			wantWarning:   false,
+			wantExpired:        true,
+			wantCritical:       false,
+			wantWarning:        false,
 			wantVersionsBehind: 4,
 		},
 		{
@@ -199,9 +199,9 @@ func TestVersionsPolicy_Evaluate(t *testing.T) {
 			newerReleases: []types.Release{
 				makeRelease("2.0.0", 5),
 			},
-			wantExpired:   true,
-			wantCritical:  false,
-			wantWarning:   false,
+			wantExpired:  true,
+			wantCritical: false,
+			wantWarning:  false,
 		},
 		{
 			name:       "multiple patches same minor - counts as 1",
@@ -214,9 +214,9 @@ func TestVersionsPolicy_Evaluate(t *testing.T) {
 				makeRelease("1.33.5", 20),
 				makeRelease("1.33.0", 35),
 			},
-			wantExpired:   false,
-			wantCritical:  false,
-			wantWarning:   true,
+			wantExpired:        false,
+			wantCritical:       false,
+			wantWarning:        true,
 			wantVersionsBehind: 2, // Only 1.33 and 1.34
 		},
 	}
@@ -249,9 +249,9 @@ func TestVersionsPolicy_Evaluate(t *testing.T) {
 
 func TestNewPolicy(t *testing.T) {
 	tests := []struct {
-		name       string
-		config     *config.RepositoryConfig
-		wantType   string
+		name     string
+		config   *config.RepositoryConfig
+		wantType string
 	}{
 		{
 			name:     "days policy",

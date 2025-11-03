@@ -72,8 +72,8 @@ type Analysis struct {
 	MaxAgeDays      int `json:"max_age_days"`
 
 	// Policy information
-	PolicyType        string `json:"policy_type,omitempty"`         // "days" or "versions"
-	MinorVersionsBehind int  `json:"minor_versions_behind,omitempty"` // For version-based policies
+	PolicyType          string `json:"policy_type,omitempty"`           // "days" or "versions"
+	MinorVersionsBehind int    `json:"minor_versions_behind,omitempty"` // For version-based policies
 }
 
 // Status returns the current status level

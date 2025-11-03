@@ -307,7 +307,7 @@ func (c *Checker) CalculateRecentReleases(allReleases []Release, comparisonVersi
 			minor := releases[0].Version.Minor()
 			isInSupportedWindow := int(minor) >= minSupportedMinor
 			isUserMinor := releases[0].Version.Major() == comparisonVersion.Major() &&
-			               releases[0].Version.Minor() == comparisonVersion.Minor()
+				releases[0].Version.Minor() == comparisonVersion.Minor()
 
 			// Skip if not in supported window and not the user's version
 			if !isInSupportedWindow && !isUserMinor {

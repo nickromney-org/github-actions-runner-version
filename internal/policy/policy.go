@@ -96,7 +96,7 @@ func (p *DaysPolicy) Evaluate(
 	}
 }
 
-func (p *DaysPolicy) Type() string             { return "days" }
+func (p *DaysPolicy) Type() string              { return "days" }
 func (p *DaysPolicy) GetCriticalDays() int      { return p.CriticalDays }
 func (p *DaysPolicy) GetMaxDays() int           { return p.MaxDays }
 func (p *DaysPolicy) GetMaxVersionsBehind() int { return 0 } // Not applicable
@@ -156,7 +156,7 @@ func (p *VersionsPolicy) Evaluate(
 	}
 }
 
-func (p *VersionsPolicy) Type() string             { return "versions" }
+func (p *VersionsPolicy) Type() string              { return "versions" }
 func (p *VersionsPolicy) GetCriticalDays() int      { return 0 } // Not applicable
 func (p *VersionsPolicy) GetMaxDays() int           { return 0 } // Not applicable
 func (p *VersionsPolicy) GetMaxVersionsBehind() int { return p.MaxMinorVersionsBehind }

@@ -17,8 +17,8 @@ var embeddedCaches embed.FS
 
 // CacheData represents the structure of a cache file
 type CacheData struct {
-	GeneratedAt time.Time      `json:"generated_at"`
-	Repository  string         `json:"repository,omitempty"`
+	GeneratedAt time.Time     `json:"generated_at"`
+	Repository  string        `json:"repository,omitempty"`
 	Releases    []jsonRelease `json:"releases"`
 }
 

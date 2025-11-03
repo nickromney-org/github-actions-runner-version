@@ -201,10 +201,10 @@ func TestRepositoryConfig_FullName(t *testing.T) {
 
 func TestPredefinedConfigs(t *testing.T) {
 	tests := []struct {
-		name         string
-		config       RepositoryConfig
-		wantPolicy   PolicyType
-		wantCache    bool
+		name       string
+		config     RepositoryConfig
+		wantPolicy PolicyType
+		wantCache  bool
 	}{
 		{
 			name:       "actions-runner uses days policy",
