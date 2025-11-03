@@ -8,6 +8,7 @@ GIT_COMMIT=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 # Build flags
 LDFLAGS=-ldflags "-w -s -X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME} -X main.GitCommit=${GIT_COMMIT}"
+BUILDFLAGS=-trimpath
 
 # Go parameters
 GOCMD=go
@@ -22,20 +23,20 @@ all: test build
 
 build: ## Build the binary
 	@echo "Building ${BINARY_NAME}..."
-	$(GOBUILD) ${LDFLAGS} -o bin/${BINARY_NAME} .
+	CGO_ENABLED=0 $(GOBUILD) ${BUILDFLAGS} ${LDFLAGS} -o bin/${BINARY_NAME} .
 	@echo "✅ Build complete: bin/${BINARY_NAME}"
 
 build-all: ## Build for all platforms
 	@echo "Building for multiple platforms..."
-	GOOS=darwin GOARCH=amd64 $(GOBUILD) ${LDFLAGS} -o bin/${BINARY_NAME}-darwin-amd64 .
-	GOOS=darwin GOARCH=arm64 $(GOBUILD) ${LDFLAGS} -o bin/${BINARY_NAME}-darwin-arm64 .
-	GOOS=linux GOARCH=amd64 $(GOBUILD) ${LDFLAGS} -o bin/${BINARY_NAME}-linux-amd64 .
-	GOOS=linux GOARCH=arm64 $(GOBUILD) ${LDFLAGS} -o bin/${BINARY_NAME}-linux-arm64 .
-	GOOS=windows GOARCH=amd64 $(GOBUILD) ${LDFLAGS} -o bin/${BINARY_NAME}-windows-amd64.exe .
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GOBUILD) ${BUILDFLAGS} ${LDFLAGS} -o bin/${BINARY_NAME}-darwin-amd64 .
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 $(GOBUILD) ${BUILDFLAGS} ${LDFLAGS} -o bin/${BINARY_NAME}-darwin-arm64 .
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) ${BUILDFLAGS} ${LDFLAGS} -o bin/${BINARY_NAME}-linux-amd64 .
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GOBUILD) ${BUILDFLAGS} ${LDFLAGS} -o bin/${BINARY_NAME}-linux-arm64 .
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GOBUILD) ${BUILDFLAGS} ${LDFLAGS} -o bin/${BINARY_NAME}-windows-amd64.exe .
 	@echo "✅ Multi-platform build complete"
 
 install: ## Install the binary to GOPATH/bin
-	$(GOINSTALL) ${LDFLAGS} .
+	CGO_ENABLED=0 $(GOINSTALL) ${BUILDFLAGS} ${LDFLAGS} .
 
 clean: ## Clean build artifacts
 	$(GOCLEAN)
@@ -60,7 +61,7 @@ deps: ## Download dependencies
 	$(GOCMD) mod download
 
 run: ## Run the application (example)
-	$(GOBUILD) -o bin/${BINARY_NAME} .
+	CGO_ENABLED=0 $(GOBUILD) ${BUILDFLAGS} ${LDFLAGS} -o bin/${BINARY_NAME} .
 	./bin/${BINARY_NAME} -c 2.327.1 -v
 
 docker-build: ## Build Docker image

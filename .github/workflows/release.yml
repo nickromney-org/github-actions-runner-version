@@ -79,6 +79,7 @@ jobs:
           LDFLAGS="${LDFLAGS} -X main.GitCommit=${GIT_COMMIT}"
 
           go build \
+            -trimpath \
             -ldflags="${LDFLAGS}" \
             -o "${BINARY_NAME}" \
             .
