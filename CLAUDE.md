@@ -4,7 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Go CLI tool that checks GitHub Actions self-hosted runner versions against GitHub's 30-day update policy. It fetches releases from the `actions/runner` repository via the GitHub API and analyzes whether a given runner version is current, critical, or expired based on semantic versioning and release dates.
+This is a Go CLI tool that checks GitHub release versions against configurable expiry policies. It supports multiple repositories with both time-based (days) and version-based (semantic versioning) policies.
+
+**Multi-Repository Support**: Checks versions for any GitHub repository including:
+- GitHub Actions runners (default, 30-day time-based policy)
+- Kubernetes (version-based: 3 minor versions behind)
+- Pulumi (version-based: 3 minor versions behind)
+- Ubuntu releases (time-based: 365 days)
+- Custom repositories via owner/repo format or URLs
+
+**Policy Types**:
+- **Days Policy**: Time-based expiry (e.g., 30 days for actions/runner)
+- **Versions Policy**: Semantic versioning-based (e.g., N minor versions behind)
 
 ## Build and Test Commands
 
@@ -68,37 +79,55 @@ make run
 
 ## Architecture
 
-### Four-Layer Architecture
+### Multi-Repository Architecture
 
 1. **CLI Layer** (`cmd/root.go`)
    - Built with Cobra framework
-   - Handles flags, output formatting (terminal/JSON/CI), and colourised display (British English)
-   - Three output modes: terminal (human-readable), JSON (automation), CI (GitHub Actions annotations + markdown summaries)
+   - Handles repository selection (`--repo`), policy override (`--policy`), and cache paths
+   - Three output modes: terminal (human-readable), JSON (automation), CI (GitHub Actions annotations)
+   - Repository resolution: predefined names, owner/repo format, GitHub URLs
 
-2. **Core Logic Layer** (`internal/version/`)
-   - `checker.go`: Core analysis engine - compares versions, calculates age from first newer release, determines status
-   - `types.go`: Data structures (Analysis, Release, Status enum, CheckerConfig)
-   - Status determination: current → warning → critical → expired based on days since first newer release
-   - **Key insight**: Age is calculated from the FIRST newer release, not the latest
+2. **Configuration Layer** (`internal/config/`)
+   - `repository.go`: RepositoryConfig with predefined configs (actions-runner, kubernetes, pulumi, ubuntu)
+   - Repository aliases: "k8s" → kubernetes, "runner" → actions/runner
+   - Policy types: days (time-based) and versions (semantic versioning)
+   - `ParseRepositoryString()`: Handles all repository input formats
 
-3. **Data Layer** (`internal/data/`)
-   - `loader.go`: Loads embedded release cache via `go:embed`
-   - Embeds `data/releases.json` (all releases from v2.159.0 to build time)
-   - Provides instant access to historical releases without API calls
+3. **Policy Layer** (`internal/policy/`)
+   - `policy.go`: Pluggable policy system via VersionPolicy interface
+   - **DaysPolicy**: Time-based expiry (e.g., 30 days)
+   - **VersionsPolicy**: Semantic versioning-based (N minor versions behind)
+   - PolicyResult: IsExpired, IsCritical, IsWarning, DaysOld, VersionsBehind
 
-4. **GitHub Integration Layer** (`internal/github/client.go`)
-   - Wraps `go-github/v57` library
-   - Fetches from `actions/runner` repository
-   - Includes MockClient for testing
-   - Supports both full release fetch (`GetAllReleases`) and recent-only fetch (`GetRecentReleases`)
+4. **Cache Layer** (`internal/cache/`)
+   - `manager.go`: Manages embedded and custom caches
+   - Priority: custom cache > embedded cache > no cache
+   - `go:embed data/*.json`: Multiple embedded caches per repository
+   - JSON parsing with intermediate types for proper unmarshaling
+
+5. **Core Logic Layer** (`internal/version/`)
+   - `checker.go`: Core analysis engine with policy integration
+   - `NewCheckerWithPolicy()`: Creates checker with custom policy
+   - Status determination delegated to policy when present
+   - **Key insight**: Age calculated from FIRST newer release
+
+6. **GitHub Integration Layer** (`internal/github/`)
+   - Dynamic owner/repo support via `NewClient(token, owner, repo)`
+   - Supports any GitHub repository
+   - MockClient for testing
+
+7. **Type Layer** (`internal/types/`)
+   - `release.go`: Shared Release type
+   - Breaks import cycles between version and policy packages
 
 ### Key Design Patterns
 
-- **Interface-based design**: `GitHubClient` interface allows easy mocking in tests
-- **Semantic versioning**: Uses `Masterminds/semver/v3` for proper version comparison
-- **Configuration validation**: `CheckerConfig.Validate()` ensures critical days < max days
-- **Embedded cache**: Historical releases embedded via `go:embed` for minimal API usage
-- **No database**: Stateless tool with embedded data
+- **Pluggable policies**: VersionPolicy interface for different expiry strategies
+- **Repository abstraction**: Single tool for multiple repositories
+- **Interface-based design**: GitHubClient, VersionPolicy interfaces
+- **Type aliases**: version.Release aliases types.Release for backward compatibility
+- **Embedded multi-cache**: Multiple cache files via go:embed
+- **No database**: Stateless with embedded data
 
 ### Version Analysis Algorithm
 
