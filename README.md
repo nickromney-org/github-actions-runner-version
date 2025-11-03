@@ -11,6 +11,7 @@ A blazingly fast, type-safe CLI tool to check if your GitHub Actions self-hosted
 
 - ⚡ **Lightning Fast** - Single binary, ~10ms startup time
 - 🔒 **Type Safe** - Written in Go with strong typing throughout
+- 📚 **Importable Library** - Public `/pkg` API for use in your own Go apps
 - 🎨 **Beautiful Output** - Colorized terminal output with emojis
 - 📊 **Multiple Formats** - Terminal UI or JSON for automation
 - 🔢 **Semantic Versioning** - Proper major.minor.patch comparison
@@ -122,7 +123,166 @@ github-release-version-checker -c 2.328.0 -t $GITHUB_TOKEN
 github-release-version-checker -c 2.328.0 -q
 ```
 
-## 📖 Usage Examples
+## 📚 Using as a Library
+
+This package can be imported and used as a library in your own Go applications. The public API is exposed via the `/pkg` directory.
+
+### Installation
+
+```bash
+go get github.com/nickromney-org/github-actions-runner-version
+```
+
+### Quick Start
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "os"
+
+    "github.com/nickromney-org/github-actions-runner-version/pkg/checker"
+    "github.com/nickromney-org/github-actions-runner-version/pkg/client"
+    "github.com/nickromney-org/github-actions-runner-version/pkg/policy"
+)
+
+func main() {
+    // Create GitHub client
+    ghClient := client.NewClient(os.Getenv("GITHUB_TOKEN"), "actions", "runner")
+
+    // Create days-based policy (12 days critical, 30 days expired)
+    pol := policy.NewDaysPolicy(12, 30)
+
+    // Create checker with policy
+    versionChecker := checker.NewCheckerWithPolicy(ghClient, checker.Config{
+        CriticalAgeDays: 12,
+        MaxAgeDays:      30,
+        NoCache:         false,
+    }, pol)
+
+    // Analyse a version
+    analysis, err := versionChecker.Analyse(context.Background(), "2.328.0")
+    if err != nil {
+        panic(err)
+    }
+
+    // Check results
+    fmt.Printf("Status: %s\n", analysis.Status())
+    fmt.Printf("Releases behind: %d\n", analysis.ReleasesBehind)
+    fmt.Printf("Is expired: %v\n", analysis.IsExpired)
+}
+```
+
+### API Packages
+
+#### `pkg/client` - GitHub API Client
+
+Create clients to fetch releases from any GitHub repository:
+
+```go
+// Create a client
+ghClient := client.NewClient(token, "owner", "repo")
+
+// Fetch releases
+releases, err := ghClient.GetAllReleases(ctx)
+latest, err := ghClient.GetLatestRelease(ctx)
+recent, err := ghClient.GetRecentReleases(ctx, 5)
+```
+
+#### `pkg/policy` - Expiry Policies
+
+Two policy types are available:
+
+**Days-based policy** (e.g., GitHub Actions runners):
+
+```go
+// Warn after 12 days, expire after 30 days
+daysPolicy := policy.NewDaysPolicy(12, 30)
+```
+
+**Version-based policy** (e.g., Kubernetes):
+
+```go
+// Support up to 3 minor versions behind
+versionPolicy := policy.NewVersionsPolicy(3)
+```
+
+#### `pkg/checker` - Version Analysis
+
+Analyse versions against policies:
+
+```go
+// Create checker with policy
+versionChecker := checker.NewCheckerWithPolicy(ghClient, checker.Config{
+    CriticalAgeDays: 12,
+    MaxAgeDays:      30,
+    NoCache:         false,  // Use embedded cache
+}, pol)
+
+// Analyse a version
+analysis, err := versionChecker.Analyse(ctx, "2.328.0")
+
+// Access results
+switch analysis.Status() {
+case checker.StatusCurrent:
+    fmt.Println("✅ Up to date")
+case checker.StatusWarning:
+    fmt.Println("⚠️  Update available")
+case checker.StatusCritical:
+    fmt.Println("🔶 Update urgently")
+case checker.StatusExpired:
+    fmt.Println("🚨 Expired - update immediately")
+}
+```
+
+### Analysis Result Fields
+
+The `Analysis` struct provides comprehensive information:
+
+```go
+type Analysis struct {
+    LatestVersion         *semver.Version  // Latest available version
+    ComparisonVersion     *semver.Version  // Version being checked
+    IsLatest              bool             // Is on latest version
+    IsExpired             bool             // Beyond max age threshold
+    IsCritical            bool             // Within critical age window
+    ReleasesBehind        int              // Number of newer releases
+    DaysSinceUpdate       int              // Days since first newer release
+    FirstNewerVersion     *semver.Version  // First newer version available
+    FirstNewerReleaseDate *time.Time       // When first newer release was published
+    NewerReleases         []Release        // All newer releases
+    Message               string           // Human-readable status message
+    PolicyType            string           // "days" or "versions"
+    MinorVersionsBehind   int              // For version-based policies
+}
+```
+
+### Examples
+
+See the [examples/](examples/) directory for complete working examples:
+
+- **`examples/basic/`** - Basic usage with days-based policy
+- **`examples/version-based-policy/`** - Version-based policy (Kubernetes)
+- **`examples/custom-repository/`** - Check any GitHub repository
+- **`examples/json-output/`** - Using JSON marshalling
+
+Run an example:
+
+```bash
+cd examples/basic
+export GITHUB_TOKEN="your_token"
+go run main.go
+```
+
+### Full API Documentation
+
+Complete API documentation is available at:
+
+📖 **[pkg.go.dev/github.com/nickromney-org/github-actions-runner-version](https://pkg.go.dev/github.com/nickromney-org/github-actions-runner-version)**
+
+## 📖 CLI Usage Examples
 
 ### Example 1: Check Latest Version
 
@@ -456,14 +616,36 @@ EOF
 .
 ├── main.go                          # Entry point
 ├── cmd/
-│   └── root.go                     # CLI commands (Cobra)
-├── internal/
-│   ├── version/
-│   │   ├── types.go                # Type definitions
+│   ├── root.go                     # CLI commands (Cobra)
+│   ├── bootstrap-releases/         # Cache bootstrap utility
+│   └── check-releases/             # Cache validation utility
+├── pkg/                            # Public API (importable)
+│   ├── checker/                    # Version analysis engine
 │   │   ├── checker.go              # Core analysis logic
+│   │   ├── types.go                # Analysis and Config types
 │   │   └── checker_test.go         # Unit tests
-│   └── github/
-│       └── client.go               # GitHub API client
+│   ├── client/                     # GitHub API client
+│   │   ├── client.go               # Client implementation
+│   │   └── client_test.go          # Client tests
+│   ├── policy/                     # Expiry policies
+│   │   ├── policy.go               # Policy implementations
+│   │   └── policy_test.go          # Policy tests
+│   └── types/                      # Shared types
+│       └── release.go              # Release type
+├── internal/                       # Private implementation
+│   ├── version/                    # Legacy wrapper
+│   ├── github/                     # Legacy client wrapper
+│   ├── policy/                     # Config adapter
+│   ├── config/                     # Repository configs
+│   ├── data/                       # Embedded cache loader
+│   └── cache/                      # Cache management
+├── examples/                       # Library usage examples
+│   ├── basic/                      # Basic usage example
+│   ├── version-based-policy/       # Version policy example
+│   ├── custom-repository/          # Custom repo example
+│   └── json-output/                # JSON output example
+├── data/
+│   └── releases.json               # Embedded release cache
 ├── go.mod                          # Dependencies
 ├── go.sum                          # Dependency checksums
 ├── Makefile                        # Build automation
