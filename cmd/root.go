@@ -68,7 +68,11 @@ Supports multiple repositories with both time-based (days) and version-based
 
   # Kubernetes (version-based: 3 minor versions supported)
   github-release-version-checker --repo kubernetes/kubernetes -c 1.31.12
-  github-release-version-checker --repo kubernetes/kubernetes -c 1.28.0
+  github-release-version-checker --repo k8s -c 1.28.0
+
+  # Node.js (version-based: 3 major versions supported)
+  github-release-version-checker --repo nodejs/node -c v20.0.0
+  github-release-version-checker --repo node -c v18.20.0
 
   # Pulumi (version-based policy)
   github-release-version-checker --repo pulumi/pulumi -c 3.204.0
@@ -169,10 +173,14 @@ func run(cmd *cobra.Command, args []string) error {
 	var err error
 
 	if repository != "" {
-		// Parse user-provided repository
-		repoConfig, err = config.ParseRepositoryString(repository)
+		// Try predefined config first (for short names like "node", "k8s")
+		repoConfig, err = config.GetPredefinedConfig(repository)
 		if err != nil {
-			return fmt.Errorf("invalid repository: %w", err)
+			// Not a predefined config, try parsing as owner/repo or URL
+			repoConfig, err = config.ParseRepositoryString(repository)
+			if err != nil {
+				return fmt.Errorf("invalid repository: %w", err)
+			}
 		}
 	} else {
 		// Default to actions/runner

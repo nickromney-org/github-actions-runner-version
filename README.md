@@ -96,7 +96,14 @@ github-release-version-checker -c 2.328.0 --ci
 
 ```bash
 github-release-version-checker --repo kubernetes/kubernetes -c 1.31.12
-github-release-version-checker --repo kubernetes/kubernetes -c 1.28.0
+github-release-version-checker --repo k8s -c 1.28.0
+```
+
+#### Node.js (version-based policy: 3 major versions)
+
+```bash
+github-release-version-checker --repo nodejs/node -c v20.0.0
+github-release-version-checker --repo node -c v18.20.0
 ```
 
 #### Other Popular Tools

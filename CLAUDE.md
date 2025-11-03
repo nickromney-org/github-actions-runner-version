@@ -11,7 +11,7 @@ This is a Go CLI tool that checks GitHub release versions against configurable e
 - GitHub Actions runners (default, 30-day time-based policy)
 - Kubernetes (version-based: 3 minor versions behind)
 - Pulumi (version-based: 3 minor versions behind)
-- Ubuntu releases (time-based: 365 days)
+- Node.js (version-based: 3 major versions behind)
 - Custom repositories via owner/repo format or URLs
 
 **Policy Types**:
@@ -95,8 +95,8 @@ make run
    - Repository resolution: predefined names, owner/repo format, GitHub URLs
 
 2. **Configuration Layer** (`internal/config/`)
-   - `repository.go`: RepositoryConfig with predefined configs (actions-runner, kubernetes, pulumi, ubuntu)
-   - Repository aliases: "k8s" → kubernetes, "runner" → actions/runner
+   - `repository.go`: RepositoryConfig with predefined configs (actions-runner, kubernetes, pulumi, nodejs)
+   - Repository aliases: "k8s" → kubernetes, "runner" → actions/runner, "node" → nodejs
    - Policy types: days (time-based) and versions (semantic versioning)
    - `ParseRepositoryString()`: Handles all repository input formats
 
