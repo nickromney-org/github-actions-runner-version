@@ -47,7 +47,7 @@ var (
 		PolicyType:        PolicyTypeVersions,
 		MaxVersionsBehind: 3, // Support last 3 minor versions
 		CachePath:         "data/kubernetes.json",
-		CacheEnabled:      true,
+		CacheEnabled:      false, // Will be enabled when cache is created
 	}
 
 	ConfigPulumi = RepositoryConfig{
@@ -56,7 +56,7 @@ var (
 		PolicyType:        PolicyTypeVersions,
 		MaxVersionsBehind: 3,
 		CachePath:         "data/pulumi.json",
-		CacheEnabled:      true,
+		CacheEnabled:      false, // Will be enabled when cache is created
 	}
 
 	ConfigUbuntu = RepositoryConfig{
@@ -66,7 +66,7 @@ var (
 		CriticalDays: 180, // 6 months
 		MaxDays:      365, // 1 year
 		CachePath:    "data/ubuntu.json",
-		CacheEnabled: true,
+		CacheEnabled: false, // Will be enabled when cache is created
 	}
 )
 
