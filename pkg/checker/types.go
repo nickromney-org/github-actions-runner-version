@@ -19,9 +19,6 @@ const (
 	StatusExpired  Status = "expired"
 )
 
-// Release is a type alias for types.Release for backward compatibility
-type Release = types.Release
-
 // ReleaseExpiry represents expiry information for a single release
 type ReleaseExpiry struct {
 	Version         *semver.Version `json:"version"`
@@ -63,7 +60,7 @@ type Analysis struct {
 	DaysSinceUpdate       int             `json:"days_since_update"`
 	FirstNewerVersion     *semver.Version `json:"first_newer_version,omitempty"`
 	FirstNewerReleaseDate *time.Time      `json:"first_newer_release_date,omitempty"`
-	NewerReleases         []Release       `json:"newer_releases,omitempty"`
+	NewerReleases         []types.Release `json:"newer_releases,omitempty"`
 	RecentReleases        []ReleaseExpiry `json:"recent_releases,omitempty"`
 	Message               string          `json:"message"`
 

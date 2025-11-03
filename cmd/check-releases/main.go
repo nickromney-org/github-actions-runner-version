@@ -10,6 +10,7 @@ import (
 	"github.com/nickromney-org/github-actions-runner-version/internal/data"
 	"github.com/nickromney-org/github-actions-runner-version/pkg/checker"
 	"github.com/nickromney-org/github-actions-runner-version/pkg/client"
+	"github.com/nickromney-org/github-actions-runner-version/pkg/types"
 )
 
 func main() {
@@ -35,10 +36,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Convert data.Release to checker.Release
-	embedded := make([]checker.Release, len(embeddedData))
+	// Convert data.Release to types.Release
+	embedded := make([]types.Release, len(embeddedData))
 	for i, r := range embeddedData {
-		embedded[i] = checker.Release{
+		embedded[i] = types.Release{
 			Version:     r.Version,
 			PublishedAt: r.PublishedAt,
 			URL:         r.URL,

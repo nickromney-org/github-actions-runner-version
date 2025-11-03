@@ -7,23 +7,24 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/nickromney-org/github-actions-runner-version/pkg/types"
 )
 
 // MockGitHubClient for testing
 type MockGitHubClient struct {
-	LatestRelease *Release
-	AllReleases   []Release
+	LatestRelease *types.Release
+	AllReleases   []types.Release
 	Error         error
 }
 
-func (m *MockGitHubClient) GetLatestRelease(ctx context.Context) (*Release, error) {
+func (m *MockGitHubClient) GetLatestRelease(ctx context.Context) (*types.Release, error) {
 	if m.Error != nil {
 		return nil, m.Error
 	}
 	return m.LatestRelease, nil
 }
 
-func (m *MockGitHubClient) GetAllReleases(ctx context.Context) ([]Release, error) {
+func (m *MockGitHubClient) GetAllReleases(ctx context.Context) ([]types.Release, error) {
 	if m.Error != nil {
 		return nil, m.Error
 	}
@@ -31,7 +32,7 @@ func (m *MockGitHubClient) GetAllReleases(ctx context.Context) ([]Release, error
 }
 
 // GetRecentReleases returns the first N mocked releases
-func (m *MockGitHubClient) GetRecentReleases(ctx context.Context, count int) ([]Release, error) {
+func (m *MockGitHubClient) GetRecentReleases(ctx context.Context, count int) ([]types.Release, error) {
 	if m.Error != nil {
 		return nil, m.Error
 	}
@@ -41,9 +42,9 @@ func (m *MockGitHubClient) GetRecentReleases(ctx context.Context, count int) ([]
 	return m.AllReleases[:count], nil
 }
 
-func newTestRelease(version string, daysAgo int) Release {
+func newTestRelease(version string, daysAgo int) types.Release {
 	v := semver.MustParse(version)
-	return Release{
+	return types.Release{
 		Version:     v,
 		PublishedAt: time.Now().AddDate(0, 0, -daysAgo),
 		URL:         "https://example.com",
@@ -55,7 +56,7 @@ func TestAnalyse_LatestVersion(t *testing.T) {
 
 	client := &MockGitHubClient{
 		LatestRelease: &latest,
-		AllReleases:   []Release{latest},
+		AllReleases:   []types.Release{latest},
 	}
 
 	checker := NewChecker(client, Config{
@@ -82,7 +83,7 @@ func TestAnalyse_CurrentVersion(t *testing.T) {
 
 	client := &MockGitHubClient{
 		LatestRelease: &latest,
-		AllReleases:   []Release{latest},
+		AllReleases:   []types.Release{latest},
 	}
 
 	checker := NewChecker(client, Config{
@@ -111,7 +112,7 @@ func TestAnalyse_ExpiredVersion(t *testing.T) {
 
 	client := &MockGitHubClient{
 		LatestRelease: &latest,
-		AllReleases:   []Release{latest, newer, comparison},
+		AllReleases:   []types.Release{latest, newer, comparison},
 	}
 
 	checker := NewChecker(client, Config{
@@ -148,7 +149,7 @@ func TestAnalyse_CriticalVersion(t *testing.T) {
 
 	client := &MockGitHubClient{
 		LatestRelease: &latest,
-		AllReleases:   []Release{latest, newer, comparison},
+		AllReleases:   []types.Release{latest, newer, comparison},
 	}
 
 	checker := NewChecker(client, Config{
@@ -180,7 +181,7 @@ func TestAnalyse_NonExistentVersion(t *testing.T) {
 
 	client := &MockGitHubClient{
 		LatestRelease: &latest,
-		AllReleases:   []Release{latest, older},
+		AllReleases:   []types.Release{latest, older},
 	}
 
 	checker := NewChecker(client, Config{
@@ -202,7 +203,7 @@ func TestAnalyse_NonExistentVersion(t *testing.T) {
 }
 
 func TestAnalyse_PopulatesRecentReleases(t *testing.T) {
-	releases := []Release{
+	releases := []types.Release{
 		newTestRelease("2.329.0", 5),
 		newTestRelease("2.328.0", 25),
 		newTestRelease("2.327.1", 50),
@@ -239,7 +240,7 @@ func TestAnalyse_PopulatesRecentReleases(t *testing.T) {
 
 func TestCalculateRecentReleases_Last90Days(t *testing.T) {
 	// Create releases spanning 120 days
-	releases := []Release{
+	releases := []types.Release{
 		newTestRelease("2.329.0", 5),   // 5 days ago
 		newTestRelease("2.328.0", 25),  // 25 days ago
 		newTestRelease("2.327.1", 50),  // 50 days ago
@@ -261,7 +262,7 @@ func TestCalculateRecentReleases_Last90Days(t *testing.T) {
 
 func TestCalculateRecentReleases_Minimum4(t *testing.T) {
 	// Only 2 releases in last 90 days, but should return minimum 4
-	releases := []Release{
+	releases := []types.Release{
 		newTestRelease("2.329.0", 5),   // 5 days ago
 		newTestRelease("2.328.0", 25),  // 25 days ago
 		newTestRelease("2.327.0", 100), // 100 days ago
@@ -280,7 +281,7 @@ func TestCalculateRecentReleases_Minimum4(t *testing.T) {
 }
 
 func TestFindNewerReleases(t *testing.T) {
-	releases := []Release{
+	releases := []types.Release{
 		newTestRelease("2.329.0", 3),
 		newTestRelease("2.328.0", 65),
 		newTestRelease("2.327.1", 84),
@@ -356,17 +357,17 @@ func TestConfig_Validate(t *testing.T) {
 func TestChecker_IsEmbeddedCurrent(t *testing.T) {
 	tests := []struct {
 		name     string
-		embedded []Release
-		recent   []Release
+		embedded []types.Release
+		recent   []types.Release
 		want     bool
 	}{
 		{
 			name: "embedded is current (latest in top 5)",
-			embedded: []Release{
+			embedded: []types.Release{
 				newTestRelease("2.329.0", 5),
 				newTestRelease("2.328.0", 20),
 			},
-			recent: []Release{
+			recent: []types.Release{
 				newTestRelease("2.329.0", 5),
 				newTestRelease("2.328.0", 20),
 			},
@@ -374,11 +375,11 @@ func TestChecker_IsEmbeddedCurrent(t *testing.T) {
 		},
 		{
 			name: "embedded is stale (latest not in top 5)",
-			embedded: []Release{
+			embedded: []types.Release{
 				newTestRelease("2.320.0", 100),
 				newTestRelease("2.319.0", 110),
 			},
-			recent: []Release{
+			recent: []types.Release{
 				newTestRelease("2.329.0", 5),
 				newTestRelease("2.328.0", 20),
 			},
@@ -386,8 +387,8 @@ func TestChecker_IsEmbeddedCurrent(t *testing.T) {
 		},
 		{
 			name:     "empty embedded",
-			embedded: []Release{},
-			recent: []Release{
+			embedded: []types.Release{},
+			recent: []types.Release{
 				newTestRelease("2.329.0", 5),
 			},
 			want: false,
@@ -406,12 +407,12 @@ func TestChecker_IsEmbeddedCurrent(t *testing.T) {
 }
 
 func TestChecker_MergeReleases(t *testing.T) {
-	embedded := []Release{
+	embedded := []types.Release{
 		newTestRelease("2.327.0", 50),
 		newTestRelease("2.326.0", 60),
 	}
 
-	recent := []Release{
+	recent := []types.Release{
 		newTestRelease("2.329.0", 5),
 		newTestRelease("2.328.0", 20),
 		newTestRelease("2.327.0", 50), // Duplicate

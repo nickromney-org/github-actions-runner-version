@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	gh "github.com/google/go-github/v57/github"
 	"github.com/nickromney-org/github-actions-runner-version/pkg/types"
 )
@@ -147,7 +148,7 @@ func TestMockClient(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("GetLatestRelease success", func(t *testing.T) {
-		expected := NewTestRelease("2.329.0", "actions", "runner", 0)
+		expected := newTestRelease("2.329.0", "actions", "runner", 0)
 		mock := &MockClient{
 			LatestRelease: &expected,
 		}
@@ -175,9 +176,9 @@ func TestMockClient(t *testing.T) {
 
 	t.Run("GetAllReleases success", func(t *testing.T) {
 		releases := []types.Release{
-			NewTestRelease("2.329.0", "actions", "runner", 0),
-			NewTestRelease("2.328.0", "actions", "runner", 5),
-			NewTestRelease("2.327.1", "actions", "runner", 10),
+			newTestRelease("2.329.0", "actions", "runner", 0),
+			newTestRelease("2.328.0", "actions", "runner", 5),
+			newTestRelease("2.327.1", "actions", "runner", 10),
 		}
 		mock := &MockClient{
 			AllReleases: releases,
@@ -206,10 +207,10 @@ func TestMockClient(t *testing.T) {
 
 	t.Run("GetRecentReleases success", func(t *testing.T) {
 		releases := []types.Release{
-			NewTestRelease("2.329.0", "actions", "runner", 0),
-			NewTestRelease("2.328.0", "actions", "runner", 5),
-			NewTestRelease("2.327.1", "actions", "runner", 10),
-			NewTestRelease("2.327.0", "actions", "runner", 15),
+			newTestRelease("2.329.0", "actions", "runner", 0),
+			newTestRelease("2.328.0", "actions", "runner", 5),
+			newTestRelease("2.327.1", "actions", "runner", 10),
+			newTestRelease("2.327.0", "actions", "runner", 15),
 		}
 		mock := &MockClient{
 			AllReleases: releases,
@@ -230,8 +231,8 @@ func TestMockClient(t *testing.T) {
 
 	t.Run("GetRecentReleases all releases", func(t *testing.T) {
 		releases := []types.Release{
-			NewTestRelease("2.329.0", "actions", "runner", 0),
-			NewTestRelease("2.328.0", "actions", "runner", 5),
+			newTestRelease("2.329.0", "actions", "runner", 0),
+			newTestRelease("2.328.0", "actions", "runner", 5),
 		}
 		mock := &MockClient{
 			AllReleases: releases,
@@ -311,7 +312,7 @@ func TestNewTestRelease(t *testing.T) {
 				}()
 			}
 
-			release := NewTestRelease(tt.version, "actions", "runner", tt.daysAgo)
+			release := newTestRelease(tt.version, "actions", "runner", tt.daysAgo)
 
 			if tt.wantPanic {
 				return
@@ -345,6 +346,16 @@ func TestNewTestRelease(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// Helper function to create test releases
+func newTestRelease(versionStr, owner, repo string, daysAgo int) types.Release {
+	v := semver.MustParse(versionStr)
+	return types.Release{
+		Version:     v,
+		PublishedAt: time.Now().AddDate(0, 0, -daysAgo),
+		URL:         fmt.Sprintf("https://github.com/%s/%s/releases/tag/v%s", owner, repo, versionStr),
 	}
 }
 

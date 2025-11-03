@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/Masterminds/semver/v3"
 	gh "github.com/google/go-github/v57/github"
@@ -173,14 +172,4 @@ func (m *MockClient) GetRecentReleases(ctx context.Context, count int) ([]types.
 		return m.AllReleases, nil
 	}
 	return m.AllReleases[:count], nil
-}
-
-// Helper for creating test releases
-func NewTestRelease(versionStr, owner, repo string, daysAgo int) types.Release {
-	v := semver.MustParse(versionStr)
-	return types.Release{
-		Version:     v,
-		PublishedAt: time.Now().AddDate(0, 0, -daysAgo),
-		URL:         fmt.Sprintf("https://github.com/%s/%s/releases/tag/v%s", owner, repo, versionStr),
-	}
 }
