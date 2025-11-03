@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/nickromney-org/github-actions-runner-version/internal/config"
 	"github.com/nickromney-org/github-actions-runner-version/internal/data"
 	"github.com/nickromney-org/github-actions-runner-version/internal/github"
 	"github.com/nickromney-org/github-actions-runner-version/internal/version"
@@ -13,9 +14,18 @@ import (
 
 func main() {
 	token := flag.String("token", os.Getenv("GITHUB_TOKEN"), "GitHub token")
+	repo := flag.String("repo", "actions/runner", "Repository to check (e.g., 'actions/runner', 'kubernetes')")
 	flag.Parse()
 
-	client := github.NewClient(*token)
+	// Parse repository
+	repoConfig, err := config.ParseRepositoryString(*repo)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: invalid repository %q: %v\n", *repo, err)
+		os.Exit(1)
+	}
+
+	// Create GitHub client
+	client := github.NewClient(*token, repoConfig.Owner, repoConfig.Repo)
 	ctx := context.Background()
 
 	// Load embedded releases

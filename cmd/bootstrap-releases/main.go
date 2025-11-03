@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/nickromney-org/github-actions-runner-version/internal/config"
 	"github.com/nickromney-org/github-actions-runner-version/internal/github"
 )
 
@@ -25,12 +26,21 @@ type CacheFile struct {
 func main() {
 	token := flag.String("token", os.Getenv("GITHUB_TOKEN"), "GitHub token")
 	output := flag.String("output", "internal/data/releases.json", "Output file")
+	repo := flag.String("repo", "actions/runner", "Repository to fetch (e.g., 'actions/runner', 'kubernetes', 'pulumi/pulumi')")
 	flag.Parse()
 
-	client := github.NewClient(*token)
+	// Parse repository
+	repoConfig, err := config.ParseRepositoryString(*repo)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: invalid repository %q: %v\n", *repo, err)
+		os.Exit(1)
+	}
+
+	// Create GitHub client
+	client := github.NewClient(*token, repoConfig.Owner, repoConfig.Repo)
 	ctx := context.Background()
 
-	fmt.Println("Fetching all releases from GitHub API...")
+	fmt.Printf("Fetching all releases from %s/%s via GitHub API...\n", repoConfig.Owner, repoConfig.Repo)
 
 	// Fetch all releases
 	releases, err := client.GetAllReleases(ctx)

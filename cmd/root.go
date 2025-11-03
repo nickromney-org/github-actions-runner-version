@@ -9,7 +9,10 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	colour "github.com/fatih/color"
+	"github.com/nickromney-org/github-actions-runner-version/internal/cache"
+	"github.com/nickromney-org/github-actions-runner-version/internal/config"
 	"github.com/nickromney-org/github-actions-runner-version/internal/github"
+	"github.com/nickromney-org/github-actions-runner-version/internal/policy"
 	"github.com/nickromney-org/github-actions-runner-version/internal/version"
 	"github.com/spf13/cobra"
 )
@@ -25,6 +28,12 @@ var (
 	githubToken       string
 	showVersion       bool
 	noCache           bool
+
+	// New flags for multi-repository support
+	repository  string
+	cachePath   string
+	policyType  string
+	maxVersions int
 
 	// Version information (set via SetVersionInfo from main)
 	appVersion = "dev"
@@ -47,23 +56,34 @@ func SetVersionInfo(version, build, commit string) {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "runner-version-check",
-	Short: "Check GitHub Actions runner version status",
-	Long: `Check if your GitHub Actions self-hosted runner version is up to date.
+	Use:   "github-release-version-checker",
+	Short: "Check GitHub release version status against expiry policies",
+	Long: `Check if versions are up to date against configurable expiry policies.
 
-According to GitHub's policy, runners must be updated within 30 days of any
-new release (major, minor, or patch). This tool helps you stay compliant.`,
-	Example: `  # Check latest version
-  runner-version-check
+Supports multiple repositories with both time-based (days) and version-based
+(semantic versioning) policies. Defaults to GitHub Actions runner with 30-day policy.`,
+	Example: `  # Check latest GitHub Actions runner version (default, days-based policy)
+  github-release-version-checker
+  github-release-version-checker -c 2.328.0
 
-  # Check a specific version
-  runner-version-check -c 2.327.1
+  # Kubernetes (version-based: 3 minor versions supported)
+  github-release-version-checker --repo kubernetes/kubernetes -c 1.31.12
+  github-release-version-checker --repo kubernetes/kubernetes -c 1.28.0
 
-  # Verbose output with custom thresholds
-  runner-version-check -c 2.327.1 -v -d 10 -m 30
+  # Pulumi (version-based policy)
+  github-release-version-checker --repo pulumi/pulumi -c 3.204.0
+
+  # HashiCorp Terraform (version-based policy)
+  github-release-version-checker --repo hashicorp/terraform -c 1.11.1
+
+  # Arkade (version-based policy)
+  github-release-version-checker --repo alexellis/arkade -c 0.11.50
 
   # JSON output for automation
-  runner-version-check -c 2.327.1 --json`,
+  github-release-version-checker -c 2.328.0 --json
+
+  # CI mode for GitHub Actions
+  github-release-version-checker --repo kubernetes/kubernetes -c 1.28.0 --ci`,
 	RunE: run,
 }
 
@@ -78,6 +98,12 @@ func init() {
 	rootCmd.Flags().StringVarP(&githubToken, "token", "t", os.Getenv("GITHUB_TOKEN"), "GitHub token (or GITHUB_TOKEN env var)")
 	rootCmd.Flags().BoolVar(&showVersion, "version", false, "show version information")
 	rootCmd.Flags().BoolVarP(&noCache, "no-cache", "n", false, "bypass embedded cache and always fetch from GitHub API")
+
+	// Multi-repository support flags
+	rootCmd.Flags().StringVarP(&repository, "repo", "r", "", "repository to check (format: owner/repo, e.g., 'kubernetes/kubernetes', 'pulumi/pulumi')")
+	rootCmd.Flags().StringVar(&cachePath, "cache", "", "path to custom cache file")
+	rootCmd.Flags().StringVar(&policyType, "policy", "", "policy type: 'days' or 'versions' (auto-detected if not specified)")
+	rootCmd.Flags().IntVar(&maxVersions, "max-versions", 3, "maximum minor versions behind before expiry (for version-based policy)")
 }
 
 func Execute() error {
@@ -124,7 +150,7 @@ func run(cmd *cobra.Command, args []string) error {
 
 	// Show version if requested
 	if showVersion {
-		fmt.Printf("github-actions-runner-version %s\n", appVersion)
+		fmt.Printf("github-release-version-checker %s\n", appVersion)
 		fmt.Printf("Build time: %s\n", buildTime)
 		fmt.Printf("Git commit: %s\n", gitCommit)
 		return nil
@@ -138,15 +164,63 @@ func run(cmd *cobra.Command, args []string) error {
 	// Auto-detect GitHub token from multiple sources if not provided
 	token := detectGitHubToken(githubToken)
 
-	// Create GitHub client
-	client := github.NewClient(token)
+	// Resolve repository configuration
+	var repoConfig *config.RepositoryConfig
+	var err error
 
-	// Create checker with config
-	checker := version.NewChecker(client, version.CheckerConfig{
-		CriticalAgeDays: criticalAgeDays,
-		MaxAgeDays:      maxAgeDays,
+	if repository != "" {
+		// Parse user-provided repository
+		repoConfig, err = config.ParseRepositoryString(repository)
+		if err != nil {
+			return fmt.Errorf("invalid repository: %w", err)
+		}
+	} else {
+		// Default to actions/runner
+		repoConfig = &config.ConfigActionsRunner
+	}
+
+	// Override policy type if specified
+	if policyType != "" {
+		switch strings.ToLower(policyType) {
+		case "days":
+			repoConfig.PolicyType = config.PolicyTypeDays
+		case "versions":
+			repoConfig.PolicyType = config.PolicyTypeVersions
+		default:
+			return fmt.Errorf("invalid policy type %q: must be 'days' or 'versions'", policyType)
+		}
+	}
+
+	// Override max versions if specified and using version policy
+	if cmd.Flags().Changed("max-versions") {
+		repoConfig.MaxVersionsBehind = maxVersions
+	}
+
+	// Override critical/max days if specified and using days policy
+	if repoConfig.PolicyType == config.PolicyTypeDays {
+		if cmd.Flags().Changed("critical-days") {
+			repoConfig.CriticalDays = criticalAgeDays
+		}
+		if cmd.Flags().Changed("max-days") {
+			repoConfig.MaxDays = maxAgeDays
+		}
+	}
+
+	// Create GitHub client
+	client := github.NewClient(token, repoConfig.Owner, repoConfig.Repo)
+
+	// Create cache manager (not used yet, but will be in future phases)
+	_ = cache.NewManager(cachePath)
+
+	// Create policy
+	pol := policy.NewPolicy(repoConfig)
+
+	// Create checker with policy
+	checker := version.NewCheckerWithPolicy(client, version.CheckerConfig{
+		CriticalAgeDays: repoConfig.CriticalDays,
+		MaxAgeDays:      repoConfig.MaxDays,
 		NoCache:         noCache,
-	})
+	}, pol)
 
 	// Run analysis
 	analysis, err := checker.Analyse(cmd.Context(), comparisonVersion)
@@ -215,7 +289,7 @@ func run(cmd *cobra.Command, args []string) error {
 				yellow.Println("   Authenticated requests get 5,000 per hour.")
 				yellow.Println()
 				yellow.Println("💡 Authentication options (auto-detected in order):")
-				yellow.Println("   1. Use the -t flag: runner-version-check -t YOUR_TOKEN")
+				yellow.Println("   1. Use the -t flag: github-release-version-checker -t YOUR_TOKEN")
 				yellow.Println("   2. Set GITHUB_TOKEN environment variable")
 				yellow.Println("   3. GitHub CLI: gh auth login (automatically detected)")
 				yellow.Println("   4. GitHub Actions: GITHUB_TOKEN is auto-available")
@@ -553,17 +627,32 @@ func printStatus(analysis *version.Analysis) {
 			comparisonDate = fmt.Sprintf(" (%s)", formatUKDate(*analysis.ComparisonReleasedAt))
 		}
 
-		expiryInfo := ""
-		if analysis.FirstNewerReleaseDate != nil {
-			expiryDate := analysis.FirstNewerReleaseDate.AddDate(0, 0, 30)
+		// Check if using version-based policy
+		isVersionPolicy := analysis.PolicyType == "versions"
 
+		expiryInfo := ""
+		if isVersionPolicy {
+			// For version-based policies, show version skew info
 			if analysis.IsExpired {
-				expiryInfo = fmt.Sprintf(" EXPIRED %s", formatUKDate(expiryDate))
+				expiryInfo = fmt.Sprintf(" UNSUPPORTED (%d minor versions behind)", analysis.MinorVersionsBehind)
 			} else if analysis.IsCritical {
-				daysLeft := 30 - analysis.DaysSinceUpdate
-				expiryInfo = fmt.Sprintf(" EXPIRES %s (%d days)", formatUKDate(expiryDate), daysLeft)
-			} else {
-				expiryInfo = fmt.Sprintf(" expires %s", formatUKDate(expiryDate))
+				expiryInfo = fmt.Sprintf(" CRITICAL (%d minor versions behind)", analysis.MinorVersionsBehind)
+			} else if analysis.MinorVersionsBehind > 0 {
+				expiryInfo = fmt.Sprintf(" (%d minor versions behind)", analysis.MinorVersionsBehind)
+			}
+		} else {
+			// For days-based policies, show expiry dates
+			if analysis.FirstNewerReleaseDate != nil {
+				expiryDate := analysis.FirstNewerReleaseDate.AddDate(0, 0, 30)
+
+				if analysis.IsExpired {
+					expiryInfo = fmt.Sprintf(" EXPIRED %s", formatUKDate(expiryDate))
+				} else if analysis.IsCritical {
+					daysLeft := 30 - analysis.DaysSinceUpdate
+					expiryInfo = fmt.Sprintf(" EXPIRES %s (%d days)", formatUKDate(expiryDate), daysLeft)
+				} else {
+					expiryInfo = fmt.Sprintf(" expires %s", formatUKDate(expiryDate))
+				}
 			}
 		}
 
@@ -592,10 +681,18 @@ func printExpiryTable(analysis *version.Analysis, phantomVersionStr string) {
 		return
 	}
 
+	isVersionPolicy := analysis.PolicyType == "versions"
+
 	fmt.Println()
-	cyan.Println("📅 Release Expiry Timeline")
-	cyan.Println("─────────────────────────────────────────────────────")
-	fmt.Printf("%-10s %-14s %-14s %s\n", "Version", "Release Date", "Expiry Date", "Status")
+	if isVersionPolicy {
+		cyan.Println("📋 Version Release History")
+		cyan.Println("─────────────────────────────────────────────────────")
+		fmt.Printf("%-12s %-14s %-16s %s\n", "Version", "Release Date", "Age", "Status")
+	} else {
+		cyan.Println("📅 Release Expiry Timeline")
+		cyan.Println("─────────────────────────────────────────────────────")
+		fmt.Printf("%-10s %-14s %-14s %s\n", "Version", "Release Date", "Expiry Date", "Status")
+	}
 
 	// Parse phantom version if provided
 	var phantomVersion *semver.Version
@@ -611,7 +708,11 @@ func printExpiryTable(analysis *version.Analysis, phantomVersionStr string) {
 		if phantomVersion != nil && !phantomPrinted && phantomVersion.LessThan(release.Version) {
 			// Print phantom version row
 			bold := colour.New(colour.Bold)
-			bold.Printf("%-10s %-14s %-14s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
+			if isVersionPolicy {
+				bold.Printf("%-12s %-14s %-16s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
+			} else {
+				bold.Printf("%-10s %-14s %-14s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
+			}
 			phantomPrinted = true
 		}
 
@@ -621,18 +722,67 @@ func printExpiryTable(analysis *version.Analysis, phantomVersionStr string) {
 		var expiresStr string
 		var statusStr string
 
-		if release.IsLatest {
-			expiresStr = "-"
+		if isVersionPolicy {
+			// For version-based policies, show version skew info
 			daysAgo := int(time.Since(release.ReleasedAt).Hours() / 24)
-			statusStr = fmt.Sprintf("✅ Latest (%s)", formatDaysAgo(daysAgo))
-		} else if release.ExpiresAt != nil {
-			expiresStr = formatUKDate(*release.ExpiresAt)
+			expiresStr = formatDaysAgo(daysAgo)
 
-			if release.IsExpired {
-				daysExpired := -release.DaysUntilExpiry
-				statusStr = fmt.Sprintf("❌ Expired %s", formatDaysAgo(daysExpired))
+			if release.IsLatest {
+				// Check if latest is also a .0 release
+				if release.Version.Patch() == 0 {
+					statusStr = "✅ Latest  ← Minor release"
+				} else {
+					statusStr = "✅ Latest"
+				}
 			} else {
-				statusStr = fmt.Sprintf("✅ Valid (%s left)", formatDaysInFuture(release.DaysUntilExpiry))
+				// Check if this is a .0 release (first release of a minor version)
+				isMinorRelease := release.Version.Patch() == 0
+
+				// Calculate minor version difference from LATEST version
+				minorDiff := int(analysis.LatestVersion.Minor()) - int(release.Version.Minor())
+				if release.Version.Major() == analysis.LatestVersion.Major() {
+					if minorDiff > 0 {
+						if isMinorRelease {
+							statusStr = fmt.Sprintf("-%d minor  ← Minor release", minorDiff)
+						} else {
+							statusStr = fmt.Sprintf("-%d minor", minorDiff)
+						}
+					} else if minorDiff == 0 {
+						// Same minor, check patch difference
+						patchDiff := int(analysis.LatestVersion.Patch()) - int(release.Version.Patch())
+						if patchDiff > 0 {
+							if isMinorRelease {
+								statusStr = fmt.Sprintf("-%d patch  ← Minor release", patchDiff)
+							} else {
+								statusStr = fmt.Sprintf("-%d patch", patchDiff)
+							}
+						} else {
+							statusStr = "Same as latest"
+						}
+					} else {
+						// Release is newer than latest? Shouldn't happen but handle it
+						statusStr = ""
+					}
+				} else {
+					// Different major version
+					statusStr = fmt.Sprintf("v%d", release.Version.Major())
+				}
+			}
+		} else {
+			// For days-based policies, show expiry info
+			if release.IsLatest {
+				expiresStr = "-"
+				daysAgo := int(time.Since(release.ReleasedAt).Hours() / 24)
+				statusStr = fmt.Sprintf("✅ Latest (%s)", formatDaysAgo(daysAgo))
+			} else if release.ExpiresAt != nil {
+				expiresStr = formatUKDate(*release.ExpiresAt)
+
+				if release.IsExpired {
+					daysExpired := -release.DaysUntilExpiry
+					statusStr = fmt.Sprintf("❌ Expired %s", formatDaysAgo(daysExpired))
+				} else {
+					statusStr = fmt.Sprintf("✅ Valid (%s left)", formatDaysInFuture(release.DaysUntilExpiry))
+				}
 			}
 		}
 
@@ -643,16 +793,28 @@ func printExpiryTable(analysis *version.Analysis, phantomVersionStr string) {
 			arrow = "  ← Your version"
 			// Format the whole line in bold
 			bold := colour.New(colour.Bold)
-			bold.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+			if isVersionPolicy {
+				bold.Printf("%-12s %-14s %-16s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+			} else {
+				bold.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+			}
 		} else {
-			fmt.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+			if isVersionPolicy {
+				fmt.Printf("%-12s %-14s %-16s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+			} else {
+				fmt.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+			}
 		}
 
 		// Check if phantom should be printed after this (if it's the last release and phantom is greater)
 		if phantomVersion != nil && !phantomPrinted && i == len(analysis.RecentReleases)-1 {
 			// Print phantom version row
 			bold := colour.New(colour.Bold)
-			bold.Printf("%-10s %-14s %-14s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
+			if isVersionPolicy {
+				bold.Printf("%-12s %-14s %-16s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
+			} else {
+				bold.Printf("%-10s %-14s %-14s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
+			}
 			phantomPrinted = true
 		}
 	}

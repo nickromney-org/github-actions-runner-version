@@ -7,6 +7,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/nickromney-org/github-actions-runner-version/internal/data"
+	"github.com/nickromney-org/github-actions-runner-version/internal/policy"
 )
 
 // GitHubClient defines the interface for fetching releases
@@ -20,6 +21,7 @@ type GitHubClient interface {
 type Checker struct {
 	client GitHubClient
 	config CheckerConfig
+	policy policy.VersionPolicy // Optional: if set, overrides config-based logic
 }
 
 // NewChecker creates a new version checker
@@ -27,6 +29,16 @@ func NewChecker(client GitHubClient, config CheckerConfig) *Checker {
 	return &Checker{
 		client: client,
 		config: config,
+		policy: nil,
+	}
+}
+
+// NewCheckerWithPolicy creates a new version checker with a custom policy
+func NewCheckerWithPolicy(client GitHubClient, config CheckerConfig, pol policy.VersionPolicy) *Checker {
+	return &Checker{
+		client: client,
+		config: config,
+		policy: pol,
 	}
 }
 
@@ -201,9 +213,32 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 		analysis.FirstNewerReleaseDate = &firstNewer.PublishedAt
 		analysis.DaysSinceUpdate = daysBetween(firstNewer.PublishedAt, time.Now())
 
-		// Determine status
-		analysis.IsExpired = analysis.DaysSinceUpdate >= c.config.MaxAgeDays
-		analysis.IsCritical = !analysis.IsExpired && analysis.DaysSinceUpdate >= c.config.CriticalAgeDays
+		// Determine status using policy if available, otherwise use config
+		if c.policy != nil {
+			// Use policy system
+			comparisonDate := time.Now()
+			if analysis.ComparisonReleasedAt != nil {
+				comparisonDate = *analysis.ComparisonReleasedAt
+			}
+
+			policyResult := c.policy.Evaluate(
+				comparisonVersion,
+				comparisonDate,
+				latestRelease.Version,
+				latestRelease.PublishedAt,
+				newerReleases,
+			)
+
+			analysis.IsExpired = policyResult.IsExpired
+			analysis.IsCritical = policyResult.IsCritical
+			analysis.PolicyType = c.policy.Type()
+			analysis.MinorVersionsBehind = policyResult.VersionsBehind
+		} else {
+			// Use legacy config-based logic
+			analysis.IsExpired = analysis.DaysSinceUpdate >= c.config.MaxAgeDays
+			analysis.IsCritical = !analysis.IsExpired && analysis.DaysSinceUpdate >= c.config.CriticalAgeDays
+			analysis.PolicyType = "days"
+		}
 	}
 
 	// Generate message
@@ -216,43 +251,151 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 // Shows all releases from last 90 days, or minimum 4 releases
 func (c *Checker) CalculateRecentReleases(allReleases []Release, comparisonVersion *semver.Version, latestVersion *semver.Version) []ReleaseExpiry {
 	now := time.Now()
-	ninetyDaysAgo := now.AddDate(0, 0, -90)
+
+	// For version-based policies, show recent minor versions instead of time-based window
+	isVersionPolicy := c.policy != nil && c.policy.Type() == "versions"
 
 	var recentReleases []Release
 
-	// Collect releases from last 90 days
-	for _, release := range allReleases {
-		if release.PublishedAt.After(ninetyDaysAgo) {
-			recentReleases = append(recentReleases, release)
-		}
-	}
+	if isVersionPolicy {
+		// For version-based policies, show unique minor versions from comparison to latest
+		majorVersion := latestVersion.Major()
 
-	// Ensure minimum 4 releases
-	if len(recentReleases) < 4 && len(allReleases) >= 4 {
-		// Sort all releases by date (newest first)
+		// Sort all releases by version (newest first)
 		sorted := make([]Release, len(allReleases))
 		copy(sorted, allReleases)
 		for i := 0; i < len(sorted)-1; i++ {
 			for j := i + 1; j < len(sorted); j++ {
-				if sorted[i].PublishedAt.Before(sorted[j].PublishedAt) {
+				if sorted[i].Version.LessThan(sorted[j].Version) {
 					sorted[i], sorted[j] = sorted[j], sorted[i]
 				}
 			}
 		}
-		// Take first 4
-		recentReleases = sorted[:4]
+
+		// Get max versions behind from policy
+		maxVersionsBehind := 3 // Default
+		if c.policy != nil {
+			maxVersionsBehind = c.policy.GetMaxVersionsBehind()
+			if maxVersionsBehind == 0 {
+				maxVersionsBehind = 3
+			}
+		}
+
+		// Calculate the supported window: latest - maxVersionsBehind to latest
+		minSupportedMinor := int(latestVersion.Minor()) - maxVersionsBehind
+		if minSupportedMinor < 0 {
+			minSupportedMinor = 0
+		}
+
+		// Collect releases to show:
+		// For each minor version, collect first and latest patch releases
+		minorReleases := make(map[string][]Release)
+
+		for _, release := range sorted {
+			if release.Version.Major() == majorVersion {
+				minorKey := fmt.Sprintf("%d.%d", release.Version.Major(), release.Version.Minor())
+				minorReleases[minorKey] = append(minorReleases[minorKey], release)
+			}
+		}
+
+		// Now for each minor version, add first patch, latest patch, and user's version if different
+		for _, releases := range minorReleases {
+			if len(releases) == 0 {
+				continue
+			}
+
+			minor := releases[0].Version.Minor()
+			isInSupportedWindow := int(minor) >= minSupportedMinor
+			isUserMinor := releases[0].Version.Major() == comparisonVersion.Major() &&
+				releases[0].Version.Minor() == comparisonVersion.Minor()
+
+			// Skip if not in supported window and not the user's version
+			if !isInSupportedWindow && !isUserMinor {
+				continue
+			}
+
+			// Sort releases by version (highest to lowest)
+			for i := 0; i < len(releases)-1; i++ {
+				for j := i + 1; j < len(releases); j++ {
+					if releases[i].Version.LessThan(releases[j].Version) {
+						releases[i], releases[j] = releases[j], releases[i]
+					}
+				}
+			}
+
+			latest := releases[0]
+			first := releases[len(releases)-1]
+
+			// Add first patch release
+			recentReleases = append(recentReleases, first)
+
+			// Add latest patch if different from first
+			if !latest.Version.Equal(first.Version) {
+				recentReleases = append(recentReleases, latest)
+			}
+
+			// Add user's version if it's different from both first and latest
+			if isUserMinor {
+				if !comparisonVersion.Equal(first.Version) && !comparisonVersion.Equal(latest.Version) {
+					for _, r := range releases {
+						if r.Version.Equal(comparisonVersion) {
+							recentReleases = append(recentReleases, r)
+							break
+						}
+					}
+				}
+			}
+		}
+	} else {
+		// For days-based policies, use 90-day window
+		ninetyDaysAgo := now.AddDate(0, 0, -90)
+
+		// Collect releases from last 90 days
+		for _, release := range allReleases {
+			if release.PublishedAt.After(ninetyDaysAgo) {
+				recentReleases = append(recentReleases, release)
+			}
+		}
+
+		// Ensure minimum 4 releases
+		if len(recentReleases) < 4 && len(allReleases) >= 4 {
+			// Sort all releases by date (newest first)
+			sorted := make([]Release, len(allReleases))
+			copy(sorted, allReleases)
+			for i := 0; i < len(sorted)-1; i++ {
+				for j := i + 1; j < len(sorted); j++ {
+					if sorted[i].PublishedAt.Before(sorted[j].PublishedAt) {
+						sorted[i], sorted[j] = sorted[j], sorted[i]
+					}
+				}
+			}
+			// Take first 4
+			recentReleases = sorted[:4]
+		}
 	}
 
-	// Sort oldest first (for display)
-	for i := 0; i < len(recentReleases)-1; i++ {
-		for j := i + 1; j < len(recentReleases); j++ {
-			if recentReleases[i].PublishedAt.After(recentReleases[j].PublishedAt) {
-				recentReleases[i], recentReleases[j] = recentReleases[j], recentReleases[i]
+	// Sort for display
+	if isVersionPolicy {
+		// For version-based policies, sort by version number (oldest first)
+		for i := 0; i < len(recentReleases)-1; i++ {
+			for j := i + 1; j < len(recentReleases); j++ {
+				if recentReleases[i].Version.GreaterThan(recentReleases[j].Version) {
+					recentReleases[i], recentReleases[j] = recentReleases[j], recentReleases[i]
+				}
+			}
+		}
+	} else {
+		// For days-based policies, sort by date (oldest first)
+		for i := 0; i < len(recentReleases)-1; i++ {
+			for j := i + 1; j < len(recentReleases); j++ {
+				if recentReleases[i].PublishedAt.After(recentReleases[j].PublishedAt) {
+					recentReleases[i], recentReleases[j] = recentReleases[j], recentReleases[i]
+				}
 			}
 		}
 	}
 
-	// Convert to ReleaseExpiry with expiry calculations
+	// Convert to ReleaseExpiry
 	var result []ReleaseExpiry
 	for i, release := range recentReleases {
 		expiry := ReleaseExpiry{
@@ -261,18 +404,25 @@ func (c *Checker) CalculateRecentReleases(allReleases []Release, comparisonVersi
 			IsLatest:   release.Version.Equal(latestVersion),
 		}
 
-		// Calculate expiry (30 days after next release)
-		if i < len(recentReleases)-1 {
-			nextRelease := recentReleases[i+1]
-			expiryDate := nextRelease.PublishedAt.AddDate(0, 0, 30)
-			expiry.ExpiresAt = &expiryDate
-			expiry.DaysUntilExpiry = daysBetween(now, expiryDate)
-			expiry.IsExpired = now.After(expiryDate)
-		} else {
-			// Latest version - no expiry
+		if isVersionPolicy {
+			// For version-based policies, don't calculate time-based expiry
 			expiry.ExpiresAt = nil
 			expiry.DaysUntilExpiry = 0
 			expiry.IsExpired = false
+		} else {
+			// For days-based policies, calculate expiry (30 days after next release)
+			if i < len(recentReleases)-1 {
+				nextRelease := recentReleases[i+1]
+				expiryDate := nextRelease.PublishedAt.AddDate(0, 0, 30)
+				expiry.ExpiresAt = &expiryDate
+				expiry.DaysUntilExpiry = daysBetween(now, expiryDate)
+				expiry.IsExpired = now.After(expiryDate)
+			} else {
+				// Latest version - no expiry
+				expiry.ExpiresAt = nil
+				expiry.DaysUntilExpiry = 0
+				expiry.IsExpired = false
+			}
 		}
 
 		result = append(result, expiry)
@@ -309,15 +459,47 @@ func (c *Checker) generateMessage(analysis *Analysis) string {
 		return fmt.Sprintf("Version %s is up to date", analysis.ComparisonVersion)
 	}
 
+	// Handle version-based policies
+	if analysis.PolicyType == "versions" {
+		var prefix string
+		if analysis.IsExpired {
+			prefix = "UNSUPPORTED"
+		} else if analysis.IsCritical {
+			prefix = "CRITICAL"
+		} else {
+			prefix = "Warning"
+		}
+
+		// Get max allowed from policy
+		maxAllowed := 3 // Default fallback
+		if c.policy != nil {
+			maxAllowed = c.policy.GetMaxVersionsBehind()
+			if maxAllowed == 0 {
+				maxAllowed = 3 // Fallback
+			}
+		}
+
+		msg := fmt.Sprintf("Version %s %s: %d minor version%s behind",
+			analysis.ComparisonVersion,
+			prefix,
+			analysis.MinorVersionsBehind,
+			pluralSuffix(analysis.MinorVersionsBehind))
+
+		if analysis.IsExpired {
+			msg += fmt.Sprintf(" (maximum %d allowed)", maxAllowed)
+		} else if analysis.IsCritical {
+			msg += fmt.Sprintf(" (at maximum %d allowed)", maxAllowed)
+		}
+
+		return msg
+	}
+
+	// Handle days-based policies
 	issues := []string{}
 
 	// Count releases
 	if analysis.ReleasesBehind > 0 {
-		plural := ""
-		if analysis.ReleasesBehind > 1 {
-			plural = "s"
-		}
-		issues = append(issues, fmt.Sprintf("%d release%s behind", analysis.ReleasesBehind, plural))
+		issues = append(issues, fmt.Sprintf("%d release%s behind", analysis.ReleasesBehind, pluralSuffix(analysis.ReleasesBehind)))
 	}
 
 	// Age status
@@ -347,6 +529,14 @@ func (c *Checker) generateMessage(analysis *Analysis) string {
 	}
 
 	return fmt.Sprintf("Version %s %s: %s", analysis.ComparisonVersion, prefix, issueStr)
+}
+
+// pluralSuffix returns "s" if count != 1, otherwise ""
+func pluralSuffix(count int) string {
+	if count == 1 {
+		return ""
+	}
+	return "s"
 }
 
 // daysBetween calculates the number of days between two dates

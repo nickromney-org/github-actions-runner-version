@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/nickromney-org/github-actions-runner-version/internal/types"
 )
 
 // Status represents the current state of a version
@@ -18,12 +19,8 @@ const (
 	StatusExpired  Status = "expired"
 )
 
-// Release represents a GitHub release
-type Release struct {
-	Version     *semver.Version
-	PublishedAt time.Time
-	URL         string
-}
+// Release is a type alias for types.Release for backward compatibility
+type Release = types.Release
 
 // ReleaseExpiry represents expiry information for a single release
 type ReleaseExpiry struct {
@@ -73,6 +70,10 @@ type Analysis struct {
 	// Configuration used
 	CriticalAgeDays int `json:"critical_age_days"`
 	MaxAgeDays      int `json:"max_age_days"`
+
+	// Policy information
+	PolicyType          string `json:"policy_type,omitempty"`           // "days" or "versions"
+	MinorVersionsBehind int    `json:"minor_versions_behind,omitempty"` // For version-based policies
 }
 
 // Status returns the current status level
@@ -133,7 +134,8 @@ func (c CheckerConfig) Validate() error {
 	if c.MaxAgeDays < 0 {
 		return fmt.Errorf("max_age_days must be non-negative")
 	}
-	if c.CriticalAgeDays >= c.MaxAgeDays {
+	// Skip validation if both are 0 (indicates version-based policy)
+	if c.MaxAgeDays > 0 && c.CriticalAgeDays >= c.MaxAgeDays {
 		return fmt.Errorf("critical_age_days must be less than max_age_days")
 	}
 	return nil

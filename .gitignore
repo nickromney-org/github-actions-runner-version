@@ -7,6 +7,10 @@
 bin/
 dist/
 
+# Root-level compiled binaries (maintenance tools)
+/bootstrap-releases
+/check-releases
+
 # Test binary, built with `go test -c`
 *.test
 
@@ -39,3 +43,6 @@ temp/
 # Development worktrees
 .worktrees/
 .claude/settings.local.json
+
+# Reference code/examples
+reference/
