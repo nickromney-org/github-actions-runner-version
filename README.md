@@ -38,17 +38,19 @@ sudo mv github-release-version-checker /usr/local/bin/
 # macOS (Intel)
 curl -L -o github-release-version-checker https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-release-version-checker-darwin-amd64
 chmod +x github-release-version-checker
-xattr -d com.apple.quarantine github-release-version-checker  # Remove macOS quarantine
 sudo mv github-release-version-checker /usr/local/bin/
 
 # macOS (Apple Silicon)
 curl -L -o github-release-version-checker https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-release-version-checker-darwin-arm64
 chmod +x github-release-version-checker
-xattr -d com.apple.quarantine github-release-version-checker  # Remove macOS quarantine
 sudo mv github-release-version-checker /usr/local/bin/
 ```
 
-> **Note for macOS users**: Downloaded binaries are not code-signed with an Apple Developer certificate. The `xattr -d com.apple.quarantine` command removes the Gatekeeper quarantine attribute. Alternatively, you can build from source (see Option 2 below).
+> **Note for macOS users**: This binary is not code-signed with an Apple Developer certificate. If you download via a web browser instead of `curl`, macOS may add a quarantine attribute that blocks execution. If macOS prevents you from running the binary, remove the quarantine attribute:
+> ```bash
+> xattr -d com.apple.quarantine github-release-version-checker
+> ```
+> Alternatively, build from source (Option 2) or use `go install` (Option 3) to avoid this issue entirely.
 
 #### Option 2: Build from Source
 
@@ -644,8 +646,9 @@ EOF
 │ ├── version-based-policy/ # Version policy example
 │ ├── custom-repository/ # Custom repo example
 │ └── json-output/ # JSON output example
-├── data/
-│ └── releases.json # Embedded release cache
+├── internal/
+│ ├── data/
+│ │ └── releases.json # Embedded release cache
 ├── go.mod # Dependencies
 ├── go.sum # Dependency checksums
 ├── Makefile # Build automation
@@ -665,19 +668,19 @@ make test
 make test-coverage
 
 # Run specific test
-go test -v ./internal/version -run TestAnalyze_ExpiredVersion
+go test -v ./pkg/checker -run TestAnalyse
 ```
 
 Example test output:
 
 ```text
-=== RUN TestAnalyze_ExpiredVersion
---- PASS: TestAnalyze_ExpiredVersion (0.00s)
-=== RUN TestAnalyze_CriticalVersion
---- PASS: TestAnalyze_CriticalVersion (0.00s)
+=== RUN TestAnalyse_ExpiredVersion
+--- PASS: TestAnalyse_ExpiredVersion (0.00s)
+=== RUN TestAnalyse_CriticalVersion
+--- PASS: TestAnalyse_CriticalVersion (0.00s)
 PASS
-coverage: 87.3% of statements
-ok github.com/yourusername/runner-version-checker/internal/version 0.234s
+coverage: 89.6% of statements
+ok github.com/nickromney-org/github-release-version-checker/pkg/checker 0.234s
 ```
 
 ## Why Go?
@@ -718,7 +721,7 @@ This tool embeds historical release data to minimize GitHub API calls:
 ### Cache Architecture
 
 1. **Bootstrap Process**: `scripts/update-releases.sh` fetches all releases from GitHub API
-1. **Embedded Data**: `data/releases.json` is embedded in binary via `go:embed`
+1. **Embedded Data**: `internal/data/releases.json` is embedded in binary via `go:embed`
 1. **Runtime Logic**:
 
 - Load embedded releases (instant, no API call)
