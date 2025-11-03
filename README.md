@@ -31,21 +31,21 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 ```bash
 # Linux (x64)
-curl -LO https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-release-version-checker-linux-amd64
-chmod +x github-release-version-checker-linux-amd64
-sudo mv github-release-version-checker-linux-amd64 /usr/local/bin/github-release-version-checker
+curl -L -o github-release-version-checker https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-release-version-checker-linux-amd64
+chmod +x github-release-version-checker
+sudo mv github-release-version-checker /usr/local/bin/
 
 # macOS (Intel)
-curl -LO https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-release-version-checker-darwin-amd64
-chmod +x github-release-version-checker-darwin-amd64
-xattr -d com.apple.quarantine github-release-version-checker-darwin-amd64 # Remove macOS quarantine
-sudo mv github-release-version-checker-darwin-amd64 /usr/local/bin/github-release-version-checker
+curl -L -o github-release-version-checker https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-release-version-checker-darwin-amd64
+chmod +x github-release-version-checker
+xattr -d com.apple.quarantine github-release-version-checker  # Remove macOS quarantine
+sudo mv github-release-version-checker /usr/local/bin/
 
 # macOS (Apple Silicon)
-curl -LO https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-release-version-checker-darwin-arm64
-chmod +x github-release-version-checker-darwin-arm64
-xattr -d com.apple.quarantine github-release-version-checker-darwin-arm64 # Remove macOS quarantine
-sudo mv github-release-version-checker-darwin-arm64 /usr/local/bin/github-release-version-checker
+curl -L -o github-release-version-checker https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-release-version-checker-darwin-arm64
+chmod +x github-release-version-checker
+xattr -d com.apple.quarantine github-release-version-checker  # Remove macOS quarantine
+sudo mv github-release-version-checker /usr/local/bin/
 ```
 
 > **Note for macOS users**: Downloaded binaries are not code-signed with an Apple Developer certificate. The `xattr -d com.apple.quarantine` command removes the Gatekeeper quarantine attribute. Alternatively, you can build from source (see Option 2 below).
