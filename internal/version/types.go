@@ -130,7 +130,8 @@ func (c CheckerConfig) Validate() error {
 	if c.MaxAgeDays < 0 {
 		return fmt.Errorf("max_age_days must be non-negative")
 	}
-	if c.CriticalAgeDays >= c.MaxAgeDays {
+	// Skip validation if both are 0 (indicates version-based policy)
+	if c.MaxAgeDays > 0 && c.CriticalAgeDays >= c.MaxAgeDays {
 		return fmt.Errorf("critical_age_days must be less than max_age_days")
 	}
 	return nil

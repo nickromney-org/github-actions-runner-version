@@ -336,6 +336,11 @@ func TestCheckerConfig_Validate(t *testing.T) {
 			config:  CheckerConfig{CriticalAgeDays: -1, MaxAgeDays: 30},
 			wantErr: true,
 		},
+		{
+			name:    "version-based policy (both zero)",
+			config:  CheckerConfig{CriticalAgeDays: 0, MaxAgeDays: 0},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
