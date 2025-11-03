@@ -109,8 +109,8 @@ func TestParseRepositoryString(t *testing.T) {
 			wantErr:   false,
 		},
 		{
-			name:      "predefined config",
-			input:     "kubernetes",
+			name:      "predefined config full name",
+			input:     "kubernetes/kubernetes",
 			wantOwner: "kubernetes",
 			wantRepo:  "kubernetes",
 			wantErr:   false,
@@ -144,7 +144,12 @@ func TestParseRepositoryString(t *testing.T) {
 			wantErr:   false,
 		},
 		{
-			name:    "invalid format",
+			name:    "invalid format - shorthand not supported",
+			input:   "kubernetes",
+			wantErr: true,
+		},
+		{
+			name:    "invalid format - single word",
 			input:   "invalid",
 			wantErr: true,
 		},
