@@ -287,14 +287,14 @@ Complete API documentation is available at:
 ### Example 1: Check Latest Version
 
 ```bash
-$ github-actions-runner-version
+$ github-release-version-checker
 1.329.0
 ```
 
 Perfect for scripts:
 
 ```bash
-LATEST_VERSION=$(github-actions-runner-version)
+LATEST_VERSION=$(github-release-version-checker)
 echo "Latest runner version is: $LATEST_VERSION"
 ```
 
@@ -414,7 +414,7 @@ Flags:
  -n, --no-cache bypass embedded cache and always fetch from GitHub API
  -t, --token string GitHub token (or GITHUB_TOKEN env var)
  --version show version information
- -h, --help help for github-actions-runner-version
+ -h, --help help for github-release-version-checker
 ```
 
 ## Using in GitHub Actions
@@ -515,16 +515,16 @@ Docker images are not automatically published with releases, but you can build y
 
 ```bash
 # Build Docker image locally
-docker build -t github-actions-runner-version:latest .
+docker build -t github-release-version-checker:latest .
 
 # Run in Docker
-docker run --rm github-actions-runner-version:latest
+docker run --rm github-release-version-checker:latest
 
 # With comparison version
-docker run --rm github-actions-runner-version:latest -c 2.327.1
+docker run --rm github-release-version-checker:latest -c 2.327.1
 
 # With GitHub token
-docker run --rm -e GITHUB_TOKEN=$GITHUB_TOKEN github-actions-runner-version:latest -c 2.327.1 -v
+docker run --rm -e GITHUB_TOKEN=$GITHUB_TOKEN github-release-version-checker:latest -c 2.327.1 -v
 ```
 
 ## Integration Examples

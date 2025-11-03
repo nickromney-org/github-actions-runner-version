@@ -1,6 +1,6 @@
 # Examples
 
-This directory contains example programs demonstrating how to use the `github-actions-runner-version` library in your own Go applications.
+This directory contains example programs demonstrating how to use the `github-release-version-checker` library in your own Go applications.
 
 ## Prerequisites
 

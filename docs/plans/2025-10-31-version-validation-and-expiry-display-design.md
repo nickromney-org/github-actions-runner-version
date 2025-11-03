@@ -16,7 +16,7 @@ Additionally, users need visibility into the release cadence and expiry timeline
 ## Current Behaviour
 
 ```bash
-$ ./github-actions-runner-version -c 2.327.99
+$ ./github-release-version-checker -c 2.327.99
 1.329.0
 
  Version 2.327.99 EXPIRED: 2 releases behind AND 48 days overdue
@@ -81,7 +81,7 @@ if !c.versionExists(allReleases, comparisonVersion) {
 **Error output:**
 
 ```bash
-$ ./github-actions-runner-version -c 2.327.99
+$ ./github-release-version-checker -c 2.327.99
 Error: version 2.327.99 does not exist in GitHub releases (latest: 2.329.0)
 ```
 
@@ -176,7 +176,7 @@ Add `-q, --quiet` flag following industry standards (git, npm, docker):
 **Example:**
 
 ```bash
-$ ./github-actions-runner-version -c 2.328.1 -q
+$ ./github-release-version-checker -c 2.328.1 -q
 1.329.0
  Version 2.328.1 (10 Sep 2024) expires 13 Nov 2024 (28 days): Update to v2.329.0 (Released 14 Oct 2024)
 ```

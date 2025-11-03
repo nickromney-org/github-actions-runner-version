@@ -2,7 +2,7 @@
 
 **Document Version**: 1.0
 **Date**: 2025-11-03
-**Author**: Implementation plan for expanding github-actions-runner-version into a generic GitHub release version checker
+**Author**: Implementation plan for expanding github-release-version-checker into a generic GitHub release version checker
 
 ## Executive Summary
 
@@ -15,7 +15,7 @@ This document outlines the implementation plan to transform the current GitHub A
 1. Maintain embedded caches for common projects
 1. Allow custom cache files for other projects
 1. Default to current behavior (actions/runner with 30-day policy) for backward compatibility
-1. Keep the current tool name: `github-actions-runner-version`
+1. Keep the current tool name: `github-release-version-checker`
 
 ## Current Architecture Limitations
 
@@ -443,28 +443,28 @@ func init() {
 
 ```bash
 # Default: actions/runner with 30-day policy (backward compatible)
-github-actions-runner-version -c 2.327.1
+github-release-version-checker -c 2.327.1
 
 # Check Kubernetes version (uses predefined config)
-github-actions-runner-version --repo kubernetes -c v1.32.0
+github-release-version-checker --repo kubernetes -c v1.32.0
 
 # Check Pulumi with custom repository
-github-actions-runner-version --repo pulumi/pulumi -c v3.200.0
+github-release-version-checker --repo pulumi/pulumi -c v3.200.0
 
 # Use custom cache file
-github-actions-runner-version --repo myorg/mytool -c v1.2.3 --cache ./my-cache.json
+github-release-version-checker --repo myorg/mytool -c v1.2.3 --cache ./my-cache.json
 
 # Override policy type
-github-actions-runner-version --repo actions/runner -c 2.327.1 --policy versions --max-versions 5
+github-release-version-checker --repo actions/runner -c 2.327.1 --policy versions --max-versions 5
 
 # Check from GitHub URL
-github-actions-runner-version --repo https://github.com/kubernetes/kubernetes -c v1.32.0
+github-release-version-checker --repo https://github.com/kubernetes/kubernetes -c v1.32.0
 ```
 
 ### 5. Directory Structure Changes
 
 ```
-github-actions-runner-version/
+github-release-version-checker/
 ├── cmd/
 │ └── root.go # Updated with new flags
 ├── internal/
@@ -590,7 +590,7 @@ This design **avoids breaking changes** through:
 
 1. **Default behavior unchanged**: No flags = actions/runner with 30-day policy
 1. **Existing flags preserved**: All current flags continue to work
-1. **Binary name unchanged**: Still `github-actions-runner-version`
+1. **Binary name unchanged**: Still `github-release-version-checker`
 1. **Cache path migration**: `data/releases.json` → `data/actions-runner.json` (symlink for compatibility)
 
 ### Migration Strategy
@@ -599,10 +599,10 @@ For existing automation/scripts:
 
 ```bash
 # Old command (still works):
-github-actions-runner-version -c 2.327.1
+github-release-version-checker -c 2.327.1
 
 # New explicit form (equivalent):
-github-actions-runner-version --repo actions/runner -c 2.327.1
+github-release-version-checker --repo actions/runner -c 2.327.1
 ```
 
 ## Testing Strategy
@@ -670,7 +670,7 @@ Support for:
 Run as HTTP service for centralized version checking:
 
 ```bash
-github-actions-runner-version serve --port 8080
+github-release-version-checker serve --port 8080
 curl http://localhost:8080/check?repo=kubernetes/kubernetes&version=v1.32.0
 ```
 

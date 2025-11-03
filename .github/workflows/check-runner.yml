@@ -60,11 +60,11 @@ jobs:
       - name: Download version checker
         run: |
           REPO="nickromney-org/github-release-version-checker"
-          BINARY="github-actions-runner-version-linux-amd64"
+          BINARY="github-release-version-checker-linux-amd64"
           URL="https://github.com/${REPO}/releases/latest/download"
           curl -LO "${URL}/${BINARY}"
           chmod +x "${BINARY}"
-          sudo mv "${BINARY}" /usr/local/bin/github-actions-runner-version
+          sudo mv "${BINARY}" /usr/local/bin/github-release-version-checker
 
       - name: "Example 1: Check latest version (current status)"
         id: check-latest
@@ -73,7 +73,7 @@ jobs:
           VERSION="${{ steps.runner-version.outputs.latest }}"
           echo "::notice::Demonstrating: Latest version check"
           echo "Checking version: $VERSION"
-          github-actions-runner-version -c "${VERSION}" --ci
+          github-release-version-checker -c "${VERSION}" --ci
         continue-on-error: true
 
       - name: "Example 2: Check previous version (warning + expiry table)"
@@ -83,7 +83,7 @@ jobs:
           VERSION="${{ steps.runner-version.outputs.previous }}"
           echo "::notice::Demonstrating: Previous version with full output"
           echo "Checking version: $VERSION"
-          github-actions-runner-version -c "${VERSION}" --ci
+          github-release-version-checker -c "${VERSION}" --ci
         continue-on-error: true
 
       - name: Check self-hosted runner version
@@ -94,7 +94,7 @@ jobs:
         run: |
           VERSION="${{ steps.runner-version.outputs.version }}"
           echo "Checking self-hosted runner version: $VERSION"
-          github-actions-runner-version -c "${VERSION}" --ci
+          github-release-version-checker -c "${VERSION}" --ci
         continue-on-error: true
 
       - name: Create issue if expired

@@ -64,7 +64,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
         run: |
-          BINARY_NAME="github-actions-runner-version-${{ matrix.goos }}-${{ matrix.goarch }}"
+          BINARY_NAME="github-release-version-checker-${{ matrix.goos }}-${{ matrix.goarch }}"
           if [ "${{ matrix.goos }}" = "windows" ]; then
             BINARY_NAME="${BINARY_NAME}.exe"
           fi
@@ -88,6 +88,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.release.outputs.new_release_version }}
-          files: github-actions-runner-version-*
+          files: github-release-version-checker-*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
