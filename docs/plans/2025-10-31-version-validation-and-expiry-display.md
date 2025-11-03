@@ -983,7 +983,7 @@ Expected: Build succeeds
 
 **Step 3: Test manually**
 
-Run: `./bin/github-actions-runner-version -c 2.327.1`
+Run: `./bin/github-release-version-checker -c 2.327.1`
 
 Expected: New format with all dates visible
 
@@ -1090,13 +1090,13 @@ func outputTerminal(analysis *version.Analysis) error {
 
 **Step 3: Run build and test**
 
-Run: `make build && ./bin/github-actions-runner-version -c 2.327.1`
+Run: `make build && ./bin/github-release-version-checker -c 2.327.1`
 
 Expected: Table displays with UK dates
 
 **Step 4: Test quiet flag**
 
-Run: `./bin/github-actions-runner-version -c 2.327.1 -q`
+Run: `./bin/github-release-version-checker -c 2.327.1 -q`
 
 Expected: No table displayed
 
@@ -1341,7 +1341,7 @@ Find the "Example 2: Check Expired Version" section and update:
 ### Example 2: Check Expired Version
 
 ```bash
-$ github-actions-runner-version -c 2.327.1
+$ github-release-version-checker -c 2.327.1
 1.329.0
 
  Version 2.327.1 (25 Jul 2024) EXPIRED 24 Aug 2024: Update to v2.329.0 (Released 14 Oct 2024)
@@ -1361,7 +1361,7 @@ Update other examples similarly. Add quiet flag documentation:
 
 ```markdown
 # Quiet output (suppress expiry table)
-github-actions-runner-version -c 2.327.1 -q
+github-release-version-checker -c 2.327.1 -q
 ```
 
 **Step 2: Update CLAUDE.md with new method names**
@@ -1427,15 +1427,15 @@ Expected: Build succeeds
 
 **Step 4: Test manually with real API**
 
-Run: `./bin/github-actions-runner-version -c 2.327.1`
+Run: `./bin/github-release-version-checker -c 2.327.1`
 
 Expected: Shows new format with expiry table
 
-Run: `./bin/github-actions-runner-version -c 2.327.99`
+Run: `./bin/github-release-version-checker -c 2.327.99`
 
 Expected: Error message about non-existent version
 
-Run: `./bin/github-actions-runner-version -c 2.328.1 -q`
+Run: `./bin/github-release-version-checker -c 2.328.1 -q`
 
 Expected: No table displayed
 
@@ -1461,21 +1461,21 @@ git commit -m "fix: address test failures and linting issues"
 Terminal:
 
 ```bash
-./bin/github-actions-runner-version -c 2.327.1
-./bin/github-actions-runner-version -c 2.327.1 -v
-./bin/github-actions-runner-version -c 2.327.1 -q
+./bin/github-release-version-checker -c 2.327.1
+./bin/github-release-version-checker -c 2.327.1 -v
+./bin/github-release-version-checker -c 2.327.1 -q
 ```
 
 JSON:
 
 ```bash
-./bin/github-actions-runner-version -c 2.327.1 --json
+./bin/github-release-version-checker -c 2.327.1 --json
 ```
 
 CI:
 
 ```bash
-./bin/github-actions-runner-version -c 2.327.1 --ci
+./bin/github-release-version-checker -c 2.327.1 --ci
 ```
 
 **Step 2: Verify British English**

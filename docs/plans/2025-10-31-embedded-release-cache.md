@@ -915,9 +915,9 @@ In `.github/workflows/check-runner.yml`, find the "Download version checker" ste
  - name: Download version checker
  run: |
  # Use correct repository URL and binary name
- curl -LO https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-actions-runner-version-linux-amd64
- chmod +x github-actions-runner-version-linux-amd64
- sudo mv github-actions-runner-version-linux-amd64 /usr/local/bin/github-actions-runner-version
+ curl -LO https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-release-version-checker-linux-amd64
+ chmod +x github-release-version-checker-linux-amd64
+ sudo mv github-release-version-checker-linux-amd64 /usr/local/bin/github-release-version-checker
 ```
 
 **Step 2: Update check command**
@@ -929,7 +929,7 @@ In the "Check version compliance" step:
  id: check
  run: |
  # GITHUB_TOKEN is automatically detected - no need to pass -t flag
- github-actions-runner-version -c ${{ steps.runner-version.outputs.version }} --ci
+ github-release-version-checker -c ${{ steps.runner-version.outputs.version }} --ci
  continue-on-error: true
 ```
 
@@ -939,7 +939,7 @@ In the "Check version compliance" step:
 git add .github/workflows/check-runner.yml
 git commit -m "fix: update check-runner workflow for new binary name
 
-- Use github-actions-runner-version binary name
+- Use github-release-version-checker binary name
 - Update repository URL
 - Update command invocation"
 ```
@@ -960,7 +960,7 @@ Expected: Build succeeds with embedded data
 
 **Step 2: Test with embedded cache (no token)**
 
-Run: `./bin/github-actions-runner-version -c 2.327.1`
+Run: `./bin/github-release-version-checker -c 2.327.1`
 
 Expected: Output shows version check, makes 1 API call for recent releases
 
@@ -972,13 +972,13 @@ Expected: Shows cache status
 
 **Step 4: Test with non-existent version**
 
-Run: `./bin/github-actions-runner-version -c 2.327.99`
+Run: `./bin/github-release-version-checker -c 2.327.99`
 
 Expected: Error about non-existent version
 
 **Step 5: Verify binary size**
 
-Run: `ls -lh bin/github-actions-runner-version`
+Run: `ls -lh bin/github-release-version-checker`
 
 Expected: Binary size reasonable (~8-10MB with embedded JSON)
 
