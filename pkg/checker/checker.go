@@ -149,13 +149,18 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 
 	// If no comparison version, just return latest
 	if comparisonVersionStr == "" {
-		return &Analysis{
+		analysis := &Analysis{
 			LatestVersion:   latestRelease.Version,
 			IsLatest:        false,
 			CriticalAgeDays: c.config.CriticalAgeDays,
 			MaxAgeDays:      c.config.MaxAgeDays,
 			Message:         fmt.Sprintf("Latest version: %s", latestRelease.Version),
-		}, nil
+		}
+
+		// Include recent releases for verbose display
+		analysis.RecentReleases = c.CalculateRecentReleases(allReleases, latestRelease.Version, latestRelease.Version)
+
+		return analysis, nil
 	}
 
 	// Parse comparison version

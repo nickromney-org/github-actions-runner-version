@@ -583,8 +583,13 @@ func outputTerminal(analysis *checker.Analysis) error {
 	// Always print latest version first (for script compatibility)
 	fmt.Println(analysis.LatestVersion)
 
-	// If no comparison, we're done
+	// If no comparison version provided
 	if analysis.ComparisonVersion == nil {
+		// In verbose mode, show recent releases table
+		if verbose && len(analysis.RecentReleases) > 0 {
+			fmt.Println()
+			printExpiryTable(analysis, "")
+		}
 		return nil
 	}
 
