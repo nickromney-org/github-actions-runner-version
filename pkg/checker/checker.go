@@ -332,8 +332,12 @@ func (c *Checker) CalculateRecentReleases(allReleases []types.Release, compariso
 
 			for _, release := range sorted {
 				if release.Version.Major() == majorVersion {
-					minorKey := fmt.Sprintf("%d.%d", release.Version.Major(), release.Version.Minor())
-					versionReleases[minorKey] = append(versionReleases[minorKey], release)
+					minor := release.Version.Minor()
+					// Include if in supported window or is comparison version's minor
+					if int(minor) >= minSupportedMinor || minor == comparisonVersion.Minor() {
+						minorKey := fmt.Sprintf("%d.%d", release.Version.Major(), release.Version.Minor())
+						versionReleases[minorKey] = append(versionReleases[minorKey], release)
+					}
 				}
 			}
 		}
