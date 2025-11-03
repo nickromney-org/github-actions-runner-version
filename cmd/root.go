@@ -698,9 +698,9 @@ func printExpiryTable(analysis *checker.Analysis, phantomVersionStr string) {
 
 	fmt.Println()
 	if isVersionPolicy {
-		cyan.Println("📋 Version Release History")
+		cyan.Println("📋 Release Timeline")
 		cyan.Println("─────────────────────────────────────────────────────")
-		fmt.Printf("%-12s %-14s %-16s %s\n", "Version", "Release Date", "Age", "Status")
+		fmt.Printf("%-12s %-14s %s\n", "Version", "Release Date", "Status")
 	} else {
 		cyan.Println("📅 Release Expiry Timeline")
 		cyan.Println("─────────────────────────────────────────────────────")
@@ -722,7 +722,7 @@ func printExpiryTable(analysis *checker.Analysis, phantomVersionStr string) {
 			// Print phantom version row
 			bold := colour.New(colour.Bold)
 			if isVersionPolicy {
-				bold.Printf("%-12s %-14s %-16s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
+				bold.Printf("%-12s %-14s %s\n", phantomVersion.String(), "-", "❌ Does Not Exist  ← Your requested version")
 			} else {
 				bold.Printf("%-10s %-14s %-14s %s\n", phantomVersion.String(), "-", "-", "❌ Does Not Exist  ← Your requested version")
 			}
@@ -813,7 +813,7 @@ func printExpiryTable(analysis *checker.Analysis, phantomVersionStr string) {
 			}
 		} else {
 			if isVersionPolicy {
-				fmt.Printf("%-12s %-14s %-16s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
+				fmt.Printf("%-12s %-14s %s%s\n", versionStr, releasedStr, statusStr, arrow)
 			} else {
 				fmt.Printf("%-10s %-14s %-14s %s%s\n", versionStr, releasedStr, expiresStr, statusStr, arrow)
 			}

@@ -157,6 +157,11 @@ func (c *Checker) Analyse(ctx context.Context, comparisonVersionStr string) (*An
 			Message:         fmt.Sprintf("Latest version: %s", latestRelease.Version),
 		}
 
+		// Set policy type if available
+		if c.policy != nil {
+			analysis.PolicyType = c.policy.Type()
+		}
+
 		// Include recent releases for verbose display
 		analysis.RecentReleases = c.CalculateRecentReleases(allReleases, latestRelease.Version, latestRelease.Version)
 
