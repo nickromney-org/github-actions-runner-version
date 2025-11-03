@@ -264,9 +264,6 @@ func (c *Checker) CalculateRecentReleases(allReleases []types.Release, compariso
 	var recentReleases []types.Release
 
 	if isVersionPolicy {
-		// For version-based policies, show unique minor versions from comparison to latest
-		majorVersion := latestVersion.Major()
-
 		// Sort all releases by version (newest first)
 		sorted := make([]types.Release, len(allReleases))
 		copy(sorted, allReleases)
@@ -287,36 +284,58 @@ func (c *Checker) CalculateRecentReleases(allReleases []types.Release, compariso
 			}
 		}
 
-		// Calculate the supported window: latest - maxVersionsBehind to latest
-		minSupportedMinor := int(latestVersion.Minor()) - maxVersionsBehind
-		if minSupportedMinor < 0 {
-			minSupportedMinor = 0
+		// Detect versioning scheme: check if major versions change frequently
+		// Count unique major versions in recent releases
+		// If we see multiple major versions, it's major-version scheme (Node.js)
+		// If all same major, it's minor-version scheme (Kubernetes)
+		uniqueMajors := make(map[uint64]bool)
+		sampleSize := len(sorted)
+		if sampleSize > 20 {
+			sampleSize = 20
 		}
+		for i := 0; i < sampleSize && i < len(sorted); i++ {
+			uniqueMajors[sorted[i].Version.Major()] = true
+		}
+		usesMajorVersions := len(uniqueMajors) > 1
 
-		// Collect releases to show:
-		// For each minor version, collect first and latest patch releases
-		minorReleases := make(map[string][]types.Release)
+		var versionReleases map[string][]types.Release
 
-		for _, release := range sorted {
-			if release.Version.Major() == majorVersion {
-				minorKey := fmt.Sprintf("%d.%d", release.Version.Major(), release.Version.Minor())
-				minorReleases[minorKey] = append(minorReleases[minorKey], release)
+		if usesMajorVersions {
+			// Major version scheme (Node.js style): show different major versions
+			versionReleases = make(map[string][]types.Release)
+			minSupportedMajor := int(latestVersion.Major()) - maxVersionsBehind
+			if minSupportedMajor < 0 {
+				minSupportedMajor = 0
+			}
+
+			for _, release := range sorted {
+				major := release.Version.Major()
+				// Include if in supported window or is comparison version's major
+				if int(major) >= minSupportedMajor || major == comparisonVersion.Major() {
+					majorKey := fmt.Sprintf("%d", major)
+					versionReleases[majorKey] = append(versionReleases[majorKey], release)
+				}
+			}
+		} else {
+			// Minor version scheme (Kubernetes style): show different minor versions within same major
+			majorVersion := latestVersion.Major()
+			versionReleases = make(map[string][]types.Release)
+			minSupportedMinor := int(latestVersion.Minor()) - maxVersionsBehind
+			if minSupportedMinor < 0 {
+				minSupportedMinor = 0
+			}
+
+			for _, release := range sorted {
+				if release.Version.Major() == majorVersion {
+					minorKey := fmt.Sprintf("%d.%d", release.Version.Major(), release.Version.Minor())
+					versionReleases[minorKey] = append(versionReleases[minorKey], release)
+				}
 			}
 		}
 
-		// Now for each minor version, add first patch, latest patch, and user's version if different
-		for _, releases := range minorReleases {
+		// Now for each version group, add first and latest patch releases
+		for _, releases := range versionReleases {
 			if len(releases) == 0 {
-				continue
-			}
-
-			minor := releases[0].Version.Minor()
-			isInSupportedWindow := int(minor) >= minSupportedMinor
-			isUserMinor := releases[0].Version.Major() == comparisonVersion.Major() &&
-				releases[0].Version.Minor() == comparisonVersion.Minor()
-
-			// Skip if not in supported window and not the user's version
-			if !isInSupportedWindow && !isUserMinor {
 				continue
 			}
 
@@ -341,13 +360,11 @@ func (c *Checker) CalculateRecentReleases(allReleases []types.Release, compariso
 			}
 
 			// Add user's version if it's different from both first and latest
-			if isUserMinor {
-				if !comparisonVersion.Equal(first.Version) && !comparisonVersion.Equal(latest.Version) {
-					for _, r := range releases {
-						if r.Version.Equal(comparisonVersion) {
-							recentReleases = append(recentReleases, r)
-							break
-						}
+			if !comparisonVersion.Equal(first.Version) && !comparisonVersion.Equal(latest.Version) {
+				for _, r := range releases {
+					if r.Version.Equal(comparisonVersion) {
+						recentReleases = append(recentReleases, r)
+						break
 					}
 				}
 			}
