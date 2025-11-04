@@ -27,17 +27,20 @@ The GitHub Release Version Checker helps you stay current with software releases
 ### GitHub Actions Runner
 
 ![Status](https://img.shields.io/badge/status-pending-lightgrey)
-**Latest version:** `pending`
 
-### HashiCorp Terraform
+**Latest version:** `vpending`
+
+### Terraform
 
 ![Status](https://img.shields.io/badge/status-pending-lightgrey)
-**Latest version:** `pending`
+
+**Latest version:** `vpending`
 
 ### Node.js
 
 ![Status](https://img.shields.io/badge/status-pending-lightgrey)
-**Latest version:** `pending`
+
+**Latest version:** `vpending`
 <!-- version-check-end -->
 
 ## Quick Start

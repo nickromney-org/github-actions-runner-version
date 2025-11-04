@@ -19,11 +19,30 @@ NODEJS_VERSION="${7:-unknown}"
 NODEJS_STATUS="${8:-unknown}"
 NODEJS_BADGE="${9:-grey}"
 
+# Function to add 'v' prefix only if not already present
+add_version_prefix() {
+  local version="$1"
+  if [[ "$version" =~ ^v ]]; then
+    echo "$version"
+  else
+    echo "v$version"
+  fi
+}
+
+# Add 'v' prefix to versions if not already present
+RUNNER_VERSION=$(add_version_prefix "$RUNNER_VERSION")
+TERRAFORM_VERSION=$(add_version_prefix "$TERRAFORM_VERSION")
+NODEJS_VERSION=$(add_version_prefix "$NODEJS_VERSION")
+
 # Get current timestamp
 TIMESTAMP=$(date -u +"%d %b %Y %H:%M UTC")
 
 # Create a temporary file for the new status section
 STATUS_FILE=$(mktemp)
+TMP_README=$(mktemp)
+
+# Set up cleanup trap
+trap 'rm -f "$STATUS_FILE" "$TMP_README"' EXIT
 cat > "$STATUS_FILE" <<EOF
 ## Daily Version Checks
 
@@ -33,23 +52,20 @@ cat > "$STATUS_FILE" <<EOF
 
 ![Status](https://img.shields.io/badge/status-${RUNNER_STATUS}-${RUNNER_BADGE})
 
-**Latest version:** \`v${RUNNER_VERSION}\`
+**Latest version:** \`${RUNNER_VERSION}\`
 
 ### Terraform
 
 ![Status](https://img.shields.io/badge/status-${TERRAFORM_STATUS}-${TERRAFORM_BADGE})
 
-**Latest version:** \`v${TERRAFORM_VERSION}\`
+**Latest version:** \`${TERRAFORM_VERSION}\`
 
 ### Node.js
 
 ![Status](https://img.shields.io/badge/status-${NODEJS_STATUS}-${NODEJS_BADGE})
 
-**Latest version:** \`v${NODEJS_VERSION}\`
+**Latest version:** \`${NODEJS_VERSION}\`
 EOF
-
-# Create a temporary file for the new README
-TMP_README=$(mktemp)
 
 # Process the README: replace the Daily Version Checks section
 if grep -q "## Daily Version Checks" README.md; then
@@ -90,10 +106,11 @@ else
   ' README.md > "$TMP_README"
 fi
 
-# Replace the original file
-mv "$TMP_README" README.md
-
-# Clean up
-rm -f "$STATUS_FILE"
-
-echo "✅ Updated README.md with version status"
+# Validate the temporary file before replacing
+if [[ -s "$TMP_README" ]] && grep -q "## Daily Version Checks" "$TMP_README"; then
+  mv "$TMP_README" README.md
+  echo "✅ Updated README.md with version status"
+else
+  echo "❌ Error: Temporary README file is empty or malformed. Aborting update." >&2
+  exit 1
+fi
