@@ -2,7 +2,7 @@
 #
 # Update the Daily Version Checks section in README.md
 #
-# Usage: update-readme-status.sh <runner_version> <runner_status> <runner_badge> \
+# Usage: update-readme-status.sh <runner_version> <runner_status> <runner_badge> <runner_output> \
 #                                 <terraform_version> <terraform_status> <terraform_badge> \
 #                                 <nodejs_version> <nodejs_status> <nodejs_badge>
 
@@ -12,12 +12,13 @@ set -euo pipefail
 RUNNER_VERSION="${1:-unknown}"
 RUNNER_STATUS="${2:-unknown}"
 RUNNER_BADGE="${3:-grey}"
-TERRAFORM_VERSION="${4:-unknown}"
-TERRAFORM_STATUS="${5:-unknown}"
-TERRAFORM_BADGE="${6:-grey}"
-NODEJS_VERSION="${7:-unknown}"
-NODEJS_STATUS="${8:-unknown}"
-NODEJS_BADGE="${9:-grey}"
+RUNNER_OUTPUT="${4:-}"
+TERRAFORM_VERSION="${5:-unknown}"
+TERRAFORM_STATUS="${6:-unknown}"
+TERRAFORM_BADGE="${7:-grey}"
+NODEJS_VERSION="${8:-unknown}"
+NODEJS_STATUS="${9:-unknown}"
+NODEJS_BADGE="${10:-grey}"
 
 # Function to add 'v' prefix only if not already present
 add_version_prefix() {
@@ -43,28 +44,29 @@ TMP_README=$(mktemp)
 
 # Set up cleanup trap
 trap 'rm -f "$STATUS_FILE" "$TMP_README"' EXIT
+
+# Generate release URLs (strip 'v' prefix for URL construction where needed)
+RUNNER_URL="https://github.com/actions/runner/releases/tag/${RUNNER_VERSION}"
+TERRAFORM_URL="https://github.com/hashicorp/terraform/releases/tag/${TERRAFORM_VERSION}"
+NODEJS_URL="https://github.com/nodejs/node/releases/tag/${NODEJS_VERSION}"
+
 cat > "$STATUS_FILE" <<EOF
 ## Daily Version Checks
 
 **Last updated:** ${TIMESTAMP}
 
-### GitHub Actions Runner
+| Repository | Status | Latest Version | Command |
+|------------|--------|----------------|---------|
+| [GitHub Actions Runner](${RUNNER_URL}) | ![Status](https://img.shields.io/badge/${RUNNER_STATUS}-${RUNNER_BADGE}) | \`${RUNNER_VERSION}\` | \`github-release-version-checker\` |
+| [Terraform](${TERRAFORM_URL}) | ![Status](https://img.shields.io/badge/${TERRAFORM_STATUS}-${TERRAFORM_BADGE}) | \`${TERRAFORM_VERSION}\` | \`github-release-version-checker --repo hashicorp/terraform\` |
+| [Node.js](${NODEJS_URL}) | ![Status](https://img.shields.io/badge/${NODEJS_STATUS}-${NODEJS_BADGE}) | \`${NODEJS_VERSION}\` | \`github-release-version-checker --repo node\` |
 
-![Status](https://img.shields.io/badge/status-${RUNNER_STATUS}-${RUNNER_BADGE})
+### GitHub Actions Runner Release Timeline
 
-**Latest version:** \`${RUNNER_VERSION}\`
+\`\`\`text
+${RUNNER_OUTPUT}
+\`\`\`
 
-### Terraform
-
-![Status](https://img.shields.io/badge/status-${TERRAFORM_STATUS}-${TERRAFORM_BADGE})
-
-**Latest version:** \`${TERRAFORM_VERSION}\`
-
-### Node.js
-
-![Status](https://img.shields.io/badge/status-${NODEJS_STATUS}-${NODEJS_BADGE})
-
-**Latest version:** \`${NODEJS_VERSION}\`
 EOF
 
 # Process the README: replace the Daily Version Checks section

@@ -3,14 +3,14 @@ name: Daily Version Checks
 
 "on":
   schedule:
-    - cron: "0 9 * * *" # Daily at 9 AM UTC
+    - cron: "0 9 * * *"  # Daily at 9 AM UTC
   workflow_dispatch:
 
 jobs:
   check-versions:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Needed to push README updates
+      contents: write  # Needed to push README updates
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -41,9 +41,16 @@ jobs:
             *) BADGE_COLOUR="lightgrey" ;;
           esac
 
+          # Capture verbose output for timeline display
+          VERBOSE_OUTPUT=$(github-release-version-checker -v)
+
           echo "latest=$LATEST" >> $GITHUB_OUTPUT
           echo "status=$STATUS" >> $GITHUB_OUTPUT
           echo "badge_colour=$BADGE_COLOUR" >> $GITHUB_OUTPUT
+          # Use delimiter for multiline output
+          echo "verbose_output<<EOF" >> $GITHUB_OUTPUT
+          echo "$VERBOSE_OUTPUT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Check Terraform
         id: terraform
@@ -93,6 +100,7 @@ jobs:
             "${{ steps.runner.outputs.latest }}" \
             "${{ steps.runner.outputs.status }}" \
             "${{ steps.runner.outputs.badge_colour }}" \
+            "${{ steps.runner.outputs.verbose_output }}" \
             "${{ steps.terraform.outputs.latest }}" \
             "${{ steps.terraform.outputs.status }}" \
             "${{ steps.terraform.outputs.badge_colour }}" \
@@ -119,5 +127,8 @@ jobs:
           DATE=$(date -u +"%d %b %Y")
 
           git add README.md
-          git commit -m "docs: update version checks - Runner: ${{ steps.runner.outputs.latest }}, Terraform: ${{ steps.terraform.outputs.latest }}, Node: ${{ steps.nodejs.outputs.latest }} (${DATE}) [skip ci]"
+          RUNNER_VER="${{ steps.runner.outputs.latest }}"
+          TERRAFORM_VER="${{ steps.terraform.outputs.latest }}"
+          NODE_VER="${{ steps.nodejs.outputs.latest }}"
+          git commit -m "docs: update version checks - Runner: ${RUNNER_VER}, Terraform: ${TERRAFORM_VER}, Node: ${NODE_VER} (${DATE}) [skip ci]"
           git push
