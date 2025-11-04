@@ -685,9 +685,9 @@ curl http://localhost:8080/check?repo=kubernetes/kubernetes&version=v1.32.0
 ### Medium Risk
 
 - Cache file size growth (4 embedded caches instead of 1)
- - **Mitigation**: Limit cache depth to last 100 releases per repo
+- **Mitigation**: Limit cache depth to last 100 releases per repo
 - Version-based policy complexity
- - **Mitigation**: Comprehensive tests for edge cases
+- **Mitigation**: Comprehensive tests for edge cases
 
 ### High Risk
 

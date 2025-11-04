@@ -7,6 +7,7 @@ This directory contains **historical planning and design documents** from the de
 **All features described in these documents have been implemented.**
 
 The authoritative documentation for this project is:
+
 - **[/CLAUDE.md](/CLAUDE.md)** - For developers and Claude Code instances
 - **[/README.md](/README.md)** - For users and library consumers
 
@@ -23,6 +24,7 @@ The authoritative documentation for this project is:
 ## Why Keep These?
 
 These documents provide valuable **historical context** for:
+
 - Understanding design decisions made during development
 - Seeing the evolution of the architecture
 - Reference for similar features or refactoring
@@ -31,8 +33,9 @@ These documents provide valuable **historical context** for:
 ## For New Contributors
 
 **Start here instead:**
+
 1. Read [/README.md](/README.md) for project overview
-2. Read [/CLAUDE.md](/CLAUDE.md) for architecture details
-3. Run `make build && make test` to get started
+1. Read [/CLAUDE.md](/CLAUDE.md) for architecture details
+1. Run `make build && make test` to get started
 
 The documents in this folder are historical artifacts and may not reflect the current implementation.

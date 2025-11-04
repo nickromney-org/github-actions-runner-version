@@ -1,0 +1,90 @@
+---
+name: Daily Version Checks
+
+"on":
+  schedule:
+    - cron: "0 9 * * *" # Daily at 9 AM UTC
+  workflow_dispatch:
+
+jobs:
+  check-versions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to push README updates
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download version checker
+        run: |
+          REPO="nickromney-org/github-release-version-checker"
+          BINARY="github-release-version-checker-linux-amd64"
+          URL="https://github.com/${REPO}/releases/latest/download"
+          curl -LO "${URL}/${BINARY}"
+          chmod +x "${BINARY}"
+          sudo mv "${BINARY}" /usr/local/bin/github-release-version-checker
+
+      - name: Check GitHub Actions Runner
+        id: runner
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LATEST=$(github-release-version-checker --json | jq -r '.latest_version')
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          echo "status=current" >> $GITHUB_OUTPUT
+          echo "badge_colour=green" >> $GITHUB_OUTPUT
+
+      - name: Check Terraform
+        id: terraform
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LATEST=$(github-release-version-checker --repo hashicorp/terraform --json | jq -r '.latest_version')
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          echo "status=current" >> $GITHUB_OUTPUT
+          echo "badge_colour=green" >> $GITHUB_OUTPUT
+
+      - name: Check Node.js
+        id: nodejs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LATEST=$(github-release-version-checker --repo node --json | jq -r '.latest_version')
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          echo "status=current" >> $GITHUB_OUTPUT
+          echo "badge_colour=green" >> $GITHUB_OUTPUT
+
+      - name: Update README status section
+        run: |
+          ./scripts/update-readme-status.sh \
+            "${{ steps.runner.outputs.latest }}" \
+            "${{ steps.runner.outputs.status }}" \
+            "${{ steps.runner.outputs.badge_colour }}" \
+            "${{ steps.terraform.outputs.latest }}" \
+            "${{ steps.terraform.outputs.status }}" \
+            "${{ steps.terraform.outputs.badge_colour }}" \
+            "${{ steps.nodejs.outputs.latest }}" \
+            "${{ steps.nodejs.outputs.status }}" \
+            "${{ steps.nodejs.outputs.badge_colour }}"
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet README.md; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push changes
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Format date as "05 Nov 2025" (zero-padded day)
+          DATE=$(date -u +"%d %b %Y")
+
+          git add README.md
+          git commit -m "docs: update README.md with versions ${DATE} [skip ci]"
+          git push
