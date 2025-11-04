@@ -47,6 +47,7 @@ Version    Release Date   Expiry Date    Status
 Checked at: 4 Nov 2025 11:31:57 UTC
 ```
 
+**Latest version:** `v25.1.0`
 ## Quick Start
 
 ### Installation
