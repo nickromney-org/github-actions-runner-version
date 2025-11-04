@@ -22,23 +22,30 @@ The GitHub Release Version Checker helps you stay current with software releases
 <!-- version-check-start -->
 ## Daily Version Checks
 
-**Last updated:** 04 Nov 2025 11:22 UTC
+**Last updated:** 04 Nov 2025 11:31 UTC
 
-### GitHub Actions Runner
+| Repository | Status | Latest Version | Command |
+|------------|--------|----------------|---------|
+| [GitHub Actions Runner](https://github.com/actions/runner/releases/tag/v2.329.0) | ![Status](https://img.shields.io/badge/current-green) | `v2.329.0` | `github-release-version-checker` |
+| [Terraform](https://github.com/hashicorp/terraform/releases/tag/v1.13.4) | ![Status](https://img.shields.io/badge/current-green) | `v1.13.4` | `github-release-version-checker --repo hashicorp/terraform` |
+| [Node.js](https://github.com/nodejs/node/releases/tag/v25.1.0) | ![Status](https://img.shields.io/badge/current-green) | `v25.1.0` | `github-release-version-checker --repo node` |
 
-![Status](https://img.shields.io/badge/status-current-green)
+### GitHub Actions Runner Release Timeline
 
-**Latest version:** `v2.329.0`
+```text
+2.329.0
 
-### Terraform
 
-![Status](https://img.shields.io/badge/status-current-green)
+📅 Release Expiry Timeline
+─────────────────────────────────────────────────────
+Version    Release Date   Expiry Date    Status
+2.327.0    22 Jul 2025    24 Aug 2025    ❌ Expired 71 days ago
+2.327.1    25 Jul 2025    12 Sep 2025    ❌ Expired 52 days ago
+2.328.0    13 Aug 2025    13 Nov 2025    ✅ Valid (9 days left)
+2.329.0    14 Oct 2025    -              ✅ Latest (20 days ago)
 
-**Latest version:** `v1.13.4`
-
-### Node.js
-
-![Status](https://img.shields.io/badge/status-current-green)
+Checked at: 4 Nov 2025 11:31:57 UTC
+```
 
 **Latest version:** `v25.1.0`
 ## Quick Start
