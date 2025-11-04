@@ -22,27 +22,25 @@ The GitHub Release Version Checker helps you stay current with software releases
 <!-- version-check-start -->
 ## Daily Version Checks
 
-**Last updated:** Placeholder - will be updated by workflow
+**Last updated:** 04 Nov 2025 11:22 UTC
 
 ### GitHub Actions Runner
 
-![Status](https://img.shields.io/badge/status-pending-lightgrey)
+![Status](https://img.shields.io/badge/status-current-green)
 
-**Latest version:** `vpending`
+**Latest version:** `v2.329.0`
 
 ### Terraform
 
-![Status](https://img.shields.io/badge/status-pending-lightgrey)
+![Status](https://img.shields.io/badge/status-current-green)
 
-**Latest version:** `vpending`
+**Latest version:** `v1.13.4`
 
 ### Node.js
 
-![Status](https://img.shields.io/badge/status-pending-lightgrey)
+![Status](https://img.shields.io/badge/status-current-green)
 
-**Latest version:** `vpending`
-<!-- version-check-end -->
-
+**Latest version:** `v25.1.0`
 ## Quick Start
 
 ### Installation
