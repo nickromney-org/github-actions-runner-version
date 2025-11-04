@@ -1,5 +1,5 @@
 ---
-name: Daily Version Checks
+name: Scheduled Version Checks
 
 "on":
   schedule:
@@ -12,6 +12,12 @@ jobs:
     permissions:
       contents: write  # Needed to push README updates
     steps:
+      - name: Set run title
+        run: |
+          TIMESTAMP=$(date -u +"%d %b %Y %H:%M UTC")
+          echo "WORKFLOW_TITLE=Version checks - ${TIMESTAMP}" >> $GITHUB_ENV
+          echo "::notice title=Workflow Run::${TIMESTAMP}"
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -41,8 +47,8 @@ jobs:
             *) BADGE_COLOUR="lightgrey" ;;
           esac
 
-          # Capture verbose output for timeline display
-          VERBOSE_OUTPUT=$(github-release-version-checker -v)
+          # Capture verbose output for timeline display (redirect stderr to avoid mixing output)
+          VERBOSE_OUTPUT=$(github-release-version-checker -v 2>/dev/null)
 
           echo "latest=$LATEST" >> $GITHUB_OUTPUT
           echo "status=$STATUS" >> $GITHUB_OUTPUT
