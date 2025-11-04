@@ -136,5 +136,9 @@ jobs:
           RUNNER_VER="${{ steps.runner.outputs.latest }}"
           TERRAFORM_VER="${{ steps.terraform.outputs.latest }}"
           NODE_VER="${{ steps.nodejs.outputs.latest }}"
-          git commit -m "docs: update version checks - Runner: ${RUNNER_VER}, Terraform: ${TERRAFORM_VER}, Node: ${NODE_VER} (${DATE}) [skip ci]"
+          COMMIT_MSG="docs: update version checks - "
+          COMMIT_MSG="${COMMIT_MSG}Runner: ${RUNNER_VER}, "
+          COMMIT_MSG="${COMMIT_MSG}Terraform: ${TERRAFORM_VER}, "
+          COMMIT_MSG="${COMMIT_MSG}Node: ${NODE_VER} (${DATE}) [skip ci]"
+          git commit -m "${COMMIT_MSG}"
           git push
