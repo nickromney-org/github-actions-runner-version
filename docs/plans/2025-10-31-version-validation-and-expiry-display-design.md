@@ -267,80 +267,94 @@ linters-settings:
 ### Files to Modify
 
 1. **`internal/version/types.go`**
- - Add `ReleaseExpiry` struct
- - Add fields to `Analysis`: `RecentReleases`, `ComparisonVersionReleasedAt`
- - Update JSON marshaling for new fields
+
+- Add `ReleaseExpiry` struct
+- Add fields to `Analysis`: `RecentReleases`, `ComparisonVersionReleasedAt`
+- Update JSON marshaling for new fields
 
 1. **`internal/version/checker.go`**
- - Rename: `Analyze()` → `Analyse()`
- - Add `versionExists()` method
- - Add `calculateRecentReleases()` method (90-day/min 4 logic)
- - Add `calculateExpiry()` method (expiry = next_release + 30 days)
- - Update error message for non-existent versions
- - British English in comments/messages
+
+- Rename: `Analyze()` → `Analyse()`
+- Add `versionExists()` method
+- Add `calculateRecentReleases()` method (90-day/min 4 logic)
+- Add `calculateExpiry()` method (expiry = next_release + 30 days)
+- Update error message for non-existent versions
+- British English in comments/messages
 
 1. **`cmd/root.go`**
- - Add `-q, --quiet` flag
- - Import alias: `colour` from `github.com/fatih/color`
- - Rewrite `printStatus()` with new single-line format
- - Add `printExpiryTable()` function (UK date format: "25 Jul 2024")
- - Rename: `getStatusColor()` → `getStatusColour()`
- - Update JSON marshaling
- - Update CI output with new format
- - British English in help text, messages
+
+- Add `-q, --quiet` flag
+- Import alias: `colour` from `github.com/fatih/color`
+- Rewrite `printStatus()` with new single-line format
+- Add `printExpiryTable()` function (UK date format: "25 Jul 2024")
+- Rename: `getStatusColor()` → `getStatusColour()`
+- Update JSON marshaling
+- Update CI output with new format
+- British English in help text, messages
 
 1. **`internal/github/client.go`**
- - British English in comments
+
+- British English in comments
 
 1. **`README.md`**
- - Update examples with new output format
- - British English spelling ("colourised", etc.)
- - Document `-q, --quiet` flag
+
+- Update examples with new output format
+- British English spelling ("colourised", etc.)
+- Document `-q, --quiet` flag
 
 1. **`CLAUDE.md`**
- - Update method names (`Analyse`)
- - British English spelling
+
+- Update method names (`Analyse`)
+- British English spelling
 
 1. **`.golangci.yml`** (new file)
- - Configure misspell linter for UK locale
+
+- Configure misspell linter for UK locale
 
 1. **`Makefile`**
- - Already has lint target, no changes needed
+
+- Already has lint target, no changes needed
 
 ### Test Coverage
 
 **`internal/version/checker_test.go`:**
 
 1. **Version Validation:**
- - `TestVersionExists_ValidVersion`
- - `TestVersionExists_InvalidVersion`
- - `TestAnalyse_NonExistentVersion` - Error with helpful message
+
+- `TestVersionExists_ValidVersion`
+- `TestVersionExists_InvalidVersion`
+- `TestAnalyse_NonExistentVersion` - Error with helpful message
 
 1. **Recent Releases Calculation:**
- - `TestCalculateRecentReleases_Last90Days` - 10 releases in 90 days
- - `TestCalculateRecentReleases_Minimum4` - 2 releases in 90 days, returns 4
- - `TestCalculateRecentReleases_IncludesUserVersion` - User on 100-day-old version
- - `TestCalculateRecentReleases_AlwaysIncludesLatest`
+
+- `TestCalculateRecentReleases_Last90Days` - 10 releases in 90 days
+- `TestCalculateRecentReleases_Minimum4` - 2 releases in 90 days, returns 4
+- `TestCalculateRecentReleases_IncludesUserVersion` - User on 100-day-old version
+- `TestCalculateRecentReleases_AlwaysIncludesLatest`
 
 1. **Expiry Date Calculation:**
- - `TestCalculateExpiry_MiddleRelease` - expiry = next_release + 30 days
- - `TestCalculateExpiry_LatestRelease` - No expiry (nil)
- - `TestCalculateExpiry_DaysUntilExpiry` - Positive/negative/zero
+
+- `TestCalculateExpiry_MiddleRelease` - expiry = next_release + 30 days
+- `TestCalculateExpiry_LatestRelease` - No expiry (nil)
+- `TestCalculateExpiry_DaysUntilExpiry` - Positive/negative/zero
 
 1. **Integration:**
- - `TestAnalyse_ExpiredWithExpiryTable` - Full analysis includes RecentReleases
- - `TestAnalyse_ValidatesBeforeProcessing`
+
+- `TestAnalyse_ExpiredWithExpiryTable` - Full analysis includes RecentReleases
+- `TestAnalyse_ValidatesBeforeProcessing`
 
 1. **Edge Cases:**
- - `TestAnalyse_OnlyOneRelease`
- - `TestAnalyse_VeryOldVersion` - 200 days old
+
+- `TestAnalyse_OnlyOneRelease`
+- `TestAnalyse_VeryOldVersion` - 200 days old
 
 **`cmd/root_test.go`:** (new file)
 
 1. **Date Formatting:**
- - `TestFormatUKDate` - "25 Jul 2024" format
- - `TestPrintStatus_WithAllDates` - Status line format
- - `TestPrintExpiryTable_UKDates`
+
+- `TestFormatUKDate` - "25 Jul 2024" format
+- `TestPrintStatus_WithAllDates` - Status line format
+- `TestPrintExpiryTable_UKDates`
 
 **Coverage target:** 80%+ on new code
 

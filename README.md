@@ -1,820 +1,294 @@
-# GitHub Actions Runner Version Checker (Go)
+# GitHub Release Version Checker
 
-[![Go Version](https://img.shields.io/badge/go-1.21+-blue.svg)](https://golang.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![Build Status](https://github.com/nickromney-org/github-release-version-checker/workflows/CI/badge.svg)
+![Go Version](https://img.shields.io/github/go-mod/go-version/nickromney-org/github-release-version-checker)
+![License](https://img.shields.io/github/license/nickromney-org/github-release-version-checker)
 
-A blazingly fast, type-safe CLI tool to check if your GitHub Actions self-hosted runner version complies with GitHub's [30-day update policy](https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/about-self-hosted-runners#about-self-hosted-runner-updates).
+A fast, flexible CLI tool and Go library for checking GitHub release versions against configurable expiry policies. Track version compliance for GitHub Actions runners, Kubernetes, Node.js, and any GitHub repository.
 
-> **GitHub's Policy**: Any updates released for the software, including major, minor, or patch releases, are considered as an available update. If you do not perform a software update within 30 days, the GitHub Actions service will not queue jobs to your runner.
+## Overview
 
-## Features
+The GitHub Release Version Checker helps you stay current with software releases by comparing your installed versions against the latest releases and alerting you when updates are needed. It supports both time-based policies (e.g., 30-day runner compliance) and version-based policies (e.g., Kubernetes N-3 support).
 
-- **Lightning Fast** - Single binary, ~10ms startup time
-- **Type Safe** - Written in Go with strong typing throughout
-- **Importable Library** - Public `/pkg` API for use in your own Go apps
-- **Beautiful Output** - Colorized terminal output with emojis
-- **Multiple Formats** - Terminal UI or JSON for automation
-- **Semantic Versioning** - Proper major.minor.patch comparison
-- **Accurate Age Tracking** - Calculates from first newer release
-- **Embedded Cache** - Historical releases built-in, minimal API calls
-- **Docker Ready** - Multi-stage builds, tiny images
-- **Well Tested** - Comprehensive unit tests included
-- **Zero Dependencies** - Single static binary, no runtime needed
+**Key Features:**
+
+- **Multi-Repository Support**: Check versions for any GitHub repository
+- **Flexible Policies**: Time-based (days) or semantic versioning-based (versions behind)
+- **Multiple Output Formats**: Terminal (colourised), JSON (automation), CI (GitHub Actions)
+- **Fast & Lightweight**: Single binary, ~10ms startup, no dependencies
+- **Embedded Cache**: Minimizes API calls with intelligent release caching
+- **Public API**: Import as a Go library in your own applications
+
+<!-- version-check-start -->
+## Daily Version Checks
+
+**Last updated:** Placeholder - will be updated by workflow
+
+### GitHub Actions Runner
+
+![Status](https://img.shields.io/badge/status-pending-lightgrey)
+
+**Latest version:** `vpending`
+
+### Terraform
+
+![Status](https://img.shields.io/badge/status-pending-lightgrey)
+
+**Latest version:** `vpending`
+
+### Node.js
+
+![Status](https://img.shields.io/badge/status-pending-lightgrey)
+
+**Latest version:** `vpending`
+<!-- version-check-end -->
 
 ## Quick Start
 
 ### Installation
 
-#### Option 1: Download Binary
+Download the latest binary for your platform:
 
-Download the latest release for your platform from [GitHub Releases](https://github.com/nickromney-org/github-release-version-checker/releases/latest):
+**macOS (Apple Silicon):**
 
 ```bash
-# Linux (x64)
-curl -L -o github-release-version-checker https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-release-version-checker-linux-amd64
-chmod +x github-release-version-checker
-sudo mv github-release-version-checker /usr/local/bin/
-
-# macOS (Intel)
-curl -L -o github-release-version-checker https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-release-version-checker-darwin-amd64
-chmod +x github-release-version-checker
-sudo mv github-release-version-checker /usr/local/bin/
-
-# macOS (Apple Silicon)
 curl -L -o github-release-version-checker https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-release-version-checker-darwin-arm64
 chmod +x github-release-version-checker
 sudo mv github-release-version-checker /usr/local/bin/
 ```
 
-> **Note for macOS users**: This binary is not code-signed with an Apple Developer certificate. If you download via a web browser instead of `curl`, macOS may add a quarantine attribute that blocks execution. If macOS prevents you from running the binary, remove the quarantine attribute:
-> ```bash
-> xattr -d com.apple.quarantine github-release-version-checker
-> ```
-> Alternatively, build from source (Option 2) or use `go install` (Option 3) to avoid this issue entirely.
-
-#### Option 2: Build from Source
-
-Building from source bypasses any code-signing issues and ensures you're running code you've verified:
+**Linux (amd64):**
 
 ```bash
-git clone https://github.com/nickromney-org/github-release-version-checker.git
-cd github-release-version-checker
-make build
-
-# Binary will be in bin/github-release-version-checker
-sudo mv bin/github-release-version-checker /usr/local/bin/
+curl -L -o github-release-version-checker https://github.com/nickromney-org/github-release-version-checker/releases/latest/download/github-release-version-checker-linux-amd64
+chmod +x github-release-version-checker
+sudo mv github-release-version-checker /usr/local/bin/
 ```
 
-#### Option 3: Install with Go
-
-```bash
-go install github.com/nickromney-org/github-release-version-checker@latest
-```
+See [docs/INSTALLATION.md](docs/INSTALLATION.md) for more installation options including Windows, Docker, and building from source.
 
 ### Basic Usage
 
-#### GitHub Actions Runner (default - days-based policy)
-
-```bash
-# Check latest version
-github-release-version-checker
-
-# Check a specific version
-github-release-version-checker -c 2.328.0
-
-# Verbose output
-github-release-version-checker -c 2.328.0 -v
-
-# JSON output for automation
-github-release-version-checker -c 2.328.0 --json
-
-# CI output for GitHub Actions
-github-release-version-checker -c 2.328.0 --ci
-```
-
-#### Kubernetes (version-based policy: 3 minor versions)
-
-```bash
-github-release-version-checker --repo kubernetes/kubernetes -c 1.31.12
-github-release-version-checker --repo k8s -c 1.28.0
-```
-
-#### Node.js (version-based policy: 3 major versions)
-
-```bash
-github-release-version-checker --repo nodejs/node -c v20.0.0
-github-release-version-checker --repo node -c v18.20.0
-```
-
-#### Other Popular Tools
-
-```bash
-# Pulumi (version-based policy)
-github-release-version-checker --repo pulumi/pulumi -c 3.204.0
-
-# HashiCorp Terraform (version-based policy)
-github-release-version-checker --repo hashicorp/terraform -c 1.11.1
-
-# Arkade (version-based policy)
-github-release-version-checker --repo alexellis/arkade -c 0.11.50
-```
-
-#### Advanced Options
-
-```bash
-# Bypass embedded cache (always fetch from API)
-github-release-version-checker -c 2.328.0 --no-cache
-
-# With GitHub token (to avoid rate limiting)
-github-release-version-checker -c 2.328.0 -t $GITHUB_TOKEN
-
-# Quiet mode (suppress timeline table)
-github-release-version-checker -c 2.328.0 -q
-```
-
-## Using as a Library
-
-This package can be imported and used as a library in your own Go applications. The public API is exposed via the `/pkg` directory.
-
-### Installation
-
-```bash
-go get github.com/nickromney-org/github-release-version-checker
-```
-
-### Quick Start
-
-```go
-package main
-
-import (
- "context"
- "fmt"
- "os"
-
- "github.com/nickromney-org/github-release-version-checker/pkg/checker"
- "github.com/nickromney-org/github-release-version-checker/pkg/client"
- "github.com/nickromney-org/github-release-version-checker/pkg/policy"
-)
-
-func main() {
- // Create GitHub client
- ghClient := client.NewClient(os.Getenv("GITHUB_TOKEN"), "actions", "runner")
-
- // Create days-based policy (12 days critical, 30 days expired)
- pol := policy.NewDaysPolicy(12, 30)
-
- // Create checker with policy
- versionChecker := checker.NewCheckerWithPolicy(ghClient, checker.Config{
- CriticalAgeDays: 12,
- MaxAgeDays: 30,
- NoCache: false,
- }, pol)
-
- // Analyse a version
- analysis, err := versionChecker.Analyse(context.Background(), "2.328.0")
- if err != nil {
- panic(err)
- }
-
- // Check results
- fmt.Printf("Status: %s\n", analysis.Status())
- fmt.Printf("Releases behind: %d\n", analysis.ReleasesBehind)
- fmt.Printf("Is expired: %v\n", analysis.IsExpired)
-}
-```
-
-### API Packages
-
-#### `pkg/client` - GitHub API Client
-
-Create clients to fetch releases from any GitHub repository:
-
-```go
-// Create a client
-ghClient := client.NewClient(token, "owner", "repo")
-
-// Fetch releases
-releases, err := ghClient.GetAllReleases(ctx)
-latest, err := ghClient.GetLatestRelease(ctx)
-recent, err := ghClient.GetRecentReleases(ctx, 5)
-```
-
-#### `pkg/policy` - Expiry Policies
-
-Two policy types are available:
-
-**Days-based policy** (e.g., GitHub Actions runners):
-
-```go
-// Warn after 12 days, expire after 30 days
-daysPolicy := policy.NewDaysPolicy(12, 30)
-```
-
-**Version-based policy** (e.g., Kubernetes):
-
-```go
-// Support up to 3 minor versions behind
-versionPolicy := policy.NewVersionsPolicy(3)
-```
-
-#### `pkg/checker` - Version Analysis
-
-Analyse versions against policies:
-
-```go
-// Create checker with policy
-versionChecker := checker.NewCheckerWithPolicy(ghClient, checker.Config{
- CriticalAgeDays: 12,
- MaxAgeDays: 30,
- NoCache: false, // Use embedded cache
-}, pol)
-
-// Analyse a version
-analysis, err := versionChecker.Analyse(ctx, "2.328.0")
-
-// Access results
-switch analysis.Status() {
-case checker.StatusCurrent:
- fmt.Println(" Up to date")
-case checker.StatusWarning:
- fmt.Println(" Update available")
-case checker.StatusCritical:
- fmt.Println(" Update urgently")
-case checker.StatusExpired:
- fmt.Println(" Expired - update immediately")
-}
-```
-
-### Analysis Result Fields
-
-The `Analysis` struct provides comprehensive information:
-
-```go
-type Analysis struct {
- LatestVersion *semver.Version // Latest available version
- ComparisonVersion *semver.Version // Version being checked
- IsLatest bool // Is on latest version
- IsExpired bool // Beyond max age threshold
- IsCritical bool // Within critical age window
- ReleasesBehind int // Number of newer releases
- DaysSinceUpdate int // Days since first newer release
- FirstNewerVersion *semver.Version // First newer version available
- FirstNewerReleaseDate *time.Time // When first newer release was published
- NewerReleases []Release // All newer releases
- Message string // Human-readable status message
- PolicyType string // "days" or "versions"
- MinorVersionsBehind int // For version-based policies
-}
-```
-
-### Examples
-
-See the [examples/](examples/) directory for complete working examples:
-
-- **`examples/basic/`** - Basic usage with days-based policy
-- **`examples/version-based-policy/`** - Version-based policy (Kubernetes)
-- **`examples/custom-repository/`** - Check any GitHub repository
-- **`examples/json-output/`** - Using JSON marshalling
-
-Run an example:
-
-```bash
-cd examples/basic
-export GITHUB_TOKEN="your_token"
-go run main.go
-```
-
-### Full API Documentation
-
-Complete API documentation is available at:
-
- **[pkg.go.dev/github.com/nickromney-org/github-release-version-checker](https://pkg.go.dev/github.com/nickromney-org/github-release-version-checker)**
-
-## CLI Usage Examples
-
-### Example 1: Check Latest Version
+**Check latest version:**
 
 ```bash
 $ github-release-version-checker
-1.329.0
+2.329.0
 ```
 
-Perfect for scripts:
+**Compare your version:**
 
 ```bash
-LATEST_VERSION=$(github-release-version-checker)
-echo "Latest runner version is: $LATEST_VERSION"
-```
+$ github-release-version-checker -c 2.328.0
+2.329.0
 
-### Example 2: Check Expired Version
-
-```bash
-$ github-release-version-checker -c 2.327.1
-1.329.0
-
- Version 2.327.1 (25 Jul 2025) EXPIRED 12 Sep 2025: Update to v2.329.0 (Released 14 Oct 2025)
+ Version 2.328.0 (13 Aug 2025) expires 12 Sep 2025: Update to v2.329.0
 
  Release Expiry Timeline
 ─────────────────────────────────────────────────────
-Version Release Date Expiry Date Status
-1.327.0 22 Jul 2025 24 Aug 2025 Expired 67 days ago
-1.327.1 25 Jul 2025 12 Sep 2025 Expired 48 days ago ← Your version
-1.328.0 13 Aug 2025 13 Nov 2025 Valid (13 days left)
-1.329.0 14 Oct 2025 - Latest (16 days ago)
+Version    Release Date    Expiry Date    Status
+2.328.0    13 Aug 2025     12 Sep 2025    Valid (9 days left) ← Your version
+2.329.0    14 Oct 2025     -              Latest
 ```
 
-### Example 2a: Quiet Output (suppress expiry table)
+**Check other repositories:**
 
 ```bash
-$ github-release-version-checker -c 2.327.1 -q
-1.329.0
+# Kubernetes
+github-release-version-checker --repo kubernetes/kubernetes -c 1.28.0
 
- Version 2.327.1 (25 Jul 2025) EXPIRED 12 Sep 2025: Update to v2.329.0 (Released 14 Oct 2025)
+# Node.js
+github-release-version-checker --repo nodejs/node -c v20.0.0
+
+# Terraform
+github-release-version-checker --repo hashicorp/terraform -c 1.5.0
+
+# Any repository
+github-release-version-checker --repo owner/repo -c 1.0.0
 ```
 
-### Example 3: Verbose Output
+**JSON output for automation:**
 
 ```bash
-$ github-release-version-checker -c 2.328.0 -v
-1.329.0
-
- Version 2.328.0 Warning: 1 release behind
-
- Update available: v2.329.0
- Released: Oct 14, 2024 (3 days ago)
- Latest version: v2.329.0
-
- Detailed Analysis
-─────────────────────────────────────
- Current version: v2.328.0
- Latest version: v2.329.0
- Status: warning
- Releases behind: 1
- First newer release: v2.329.0
- Released on: 2024-10-14
- Days since update: 3
- Days until expired: 27
-
- Available Updates
-─────────────────────────────────────
- • v2.329.0 (2024-10-14, 3 days ago)
+github-release-version-checker -c 2.328.0 --json
 ```
 
-### Example 4: JSON Output
+**GitHub Actions integration:**
 
 ```bash
-$ github-release-version-checker -c 2.327.1 --json
-{
- "latest_version": "2.329.0",
- "comparison_version": "2.327.1",
- "is_latest": false,
- "is_expired": true,
- "is_critical": false,
- "releases_behind": 2,
- "days_since_update": 65,
- "first_newer_version": "2.328.0",
- "first_newer_release_date": "2024-08-13T10:30:00Z",
- "status": "expired",
- "message": "Version 2.327.1 EXPIRED: 2 releases behind AND 35 days overdue",
- "critical_age_days": 12,
- "max_age_days": 30
-}
+github-release-version-checker -c 2.328.0 --ci
 ```
 
-### Example 5: CI/GitHub Actions Output
+## Use Cases
+
+### Self-Hosted Runner Compliance
+
+GitHub requires self-hosted runners to update within 30 days. Check your runner version and get alerts:
 
 ```bash
-$ github-release-version-checker -c 2.327.1 --ci
-1.329.0
-
-::group:: Runner Version Check
-Latest version: v2.329.0
-Your version: v2.327.1
-Status: Expired
-::endgroup::
-
-::error title=Runner Version Expired:: Version 2.327.1 EXPIRED! (2 releases behind AND 35 days overdue)
-::error::Update required: v2.328.0 was released 65 days ago
-::error::Latest version: v2.329.0
-
-::group:: Available Updates
- • v2.329.0 (2024-10-14, 3 days ago) [Latest]
- • v2.328.0 (2024-08-13, 65 days ago) [First newer release]
-::endgroup::
+VERSION=$(cat $RUNNER_HOME/.runner | jq -r '.agentVersion')
+github-release-version-checker -c "$VERSION"
 ```
 
-**Plus** a beautiful markdown summary in the GitHub Actions job summary! See [CI-OUTPUT.md](CI-OUTPUT.md) for more examples.
+**Exit codes:**
 
-## Command Line Options
+- `0`: Current, warning, or critical (within policy)
+- `1`: Expired (beyond 30 days)
+
+### Kubernetes Version Tracking
+
+Track Kubernetes versions against the N-3 minor version support policy:
 
 ```bash
-Usage:
- github-release-version-checker [flags]
-
-Flags:
- -c, --compare string version to compare against (e.g., 2.327.1)
- -d, --critical-days int days before critical warning (default 12)
- -m, --max-days int days before version expires (default 30)
- -v, --verbose verbose output
- --json output as JSON
- --ci format output for CI/GitHub Actions
- -q, --quiet quiet output (suppress expiry table)
- -n, --no-cache bypass embedded cache and always fetch from GitHub API
- -t, --token string GitHub token (or GITHUB_TOKEN env var)
- --version show version information
- -h, --help help for github-release-version-checker
+github-release-version-checker --repo k8s -c 1.28.0
 ```
 
-## Using in GitHub Actions
+### CI/CD Integration
 
-The `--ci` flag formats output perfectly for GitHub Actions with:
-
-- Collapsible sections using `::group::`
-- Error/warning annotations
-- Beautiful markdown job summaries
-- Clickable links to releases
-
-### Quick Start
-
-```yaml
-name: Check Runner Version
-on:
- schedule:
- - cron: "0 9 * * *" # Daily at 9 AM
-
-jobs:
- check:
- runs-on: self-hosted
- steps:
- - name: Get runner version
- id: version
- run: |
- VERSION=$(cat $RUNNER_HOME/.runner | jq -r '.agentVersion')
- echo "version=$VERSION" >> $GITHUB_OUTPUT
-
- - name: Check version
- run: github-release-version-checker -c ${{ steps.version.outputs.version }} --ci
-```
-
-See [.github/workflows/check-runner.yml](.github/workflows/check-runner.yml) for a complete example with:
-
-- Auto-detection of runner version
-- Issue creation on expiration
-- Slack notifications
-- Failure handling
-
-## Building
-
-### Prerequisites
-
-- Go 1.21 or later
-- Make (optional, for using Makefile)
-
-### Build Commands
-
-```bash
-# Build for current platform
-make build
-
-# Build for all platforms
-make build-all
-
-# Run tests
-make test
-
-# Run tests with coverage
-make test-coverage
-
-# Run linter
-make lint
-
-# Format code
-make fmt
-
-# Install locally
-make install
-
-# Clean build artifacts
-make clean
-```
-
-### Cross-Platform Builds
-
-```bash
-# macOS (Intel)
-GOOS=darwin GOARCH=amd64 go build -o bin/github-release-version-checker-darwin-amd64
-
-# macOS (Apple Silicon)
-GOOS=darwin GOARCH=arm64 go build -o bin/github-release-version-checker-darwin-arm64
-
-# Linux (x64)
-GOOS=linux GOARCH=amd64 go build -o bin/github-release-version-checker-linux-amd64
-
-# Linux (ARM64)
-GOOS=linux GOARCH=arm64 go build -o bin/github-release-version-checker-linux-arm64
-
-# Windows
-GOOS=windows GOARCH=amd64 go build -o bin/github-release-version-checker-windows-amd64.exe
-```
-
-## Docker Usage
-
-Docker images are not automatically published with releases, but you can build your own:
-
-```bash
-# Build Docker image locally
-docker build -t github-release-version-checker:latest .
-
-# Run in Docker
-docker run --rm github-release-version-checker:latest
-
-# With comparison version
-docker run --rm github-release-version-checker:latest -c 2.327.1
-
-# With GitHub token
-docker run --rm -e GITHUB_TOKEN=$GITHUB_TOKEN github-release-version-checker:latest -c 2.327.1 -v
-```
-
-## Integration Examples
-
-### In GitHub Actions (Recommended)
+Integrate into GitHub Actions workflows with collapsible sections, annotations, and job summaries:
 
 ```yaml
 - name: Check runner version
- run: |
- VERSION=$(cat $RUNNER_HOME/.runner | jq -r '.agentVersion')
- github-release-version-checker -c "$VERSION" --ci
+  run: |
+    VERSION=$(cat $RUNNER_HOME/.runner | jq -r '.agentVersion')
+    github-release-version-checker -c "$VERSION" --ci
 ```
 
-This gives you:
+### Go Library
 
-- Beautiful formatted output in logs
-- Error/warning annotations
-- Markdown summary table
-- Clickable links to releases
+Import and use in your own Go applications:
 
-See [CI-OUTPUT.md](CI-OUTPUT.md) for examples of what the output looks like.
+```go
+import (
+    "github.com/nickromney-org/github-release-version-checker/pkg/checker"
+    "github.com/nickromney-org/github-release-version-checker/pkg/client"
+    "github.com/nickromney-org/github-release-version-checker/pkg/policy"
+)
 
-### In Shell Scripts
+ghClient := client.NewClient(token, "actions", "runner")
+pol := policy.NewDaysPolicy(12, 30)
+versionChecker := checker.NewCheckerWithPolicy(ghClient, checker.Config{}, pol)
+analysis, err := versionChecker.Analyse(ctx, "2.328.0")
+```
+
+## Documentation
+
+- **[Installation Guide](docs/INSTALLATION.md)** - Installation methods for all platforms
+- **[CLI Usage Guide](docs/CLI-USAGE.md)** - Complete CLI reference with examples
+- **[Library Usage Guide](docs/LIBRARY-USAGE.md)** - Go library API documentation
+- **[GitHub Actions Integration](docs/GITHUB-ACTIONS.md)** - CI/CD integration examples
+- **[Development Guide](docs/DEVELOPMENT.md)** - Building, testing, and contributing
+
+## Supported Repositories
+
+The tool includes predefined configurations for popular repositories:
+
+| Repository | Alias | Policy Type | Threshold |
+|------------|-------|-------------|-----------|
+| actions/runner | `runner` | Days | 30 days |
+| kubernetes/kubernetes | `k8s` | Versions | 3 minor versions |
+| nodejs/node | `node` | Versions | 3 major versions |
+| pulumi/pulumi | `pulumi` | Versions | 3 minor versions |
+| hashicorp/terraform | - | Versions | 3 minor versions |
+| alexellis/arkade | `arkade` | Versions | 3 minor versions |
+
+You can check any GitHub repository using the `owner/repo` format or a GitHub URL.
+
+## Policy Types
+
+### Days-Based Policy
+
+Time-based expiry for compliance requirements (e.g., GitHub Actions runners):
+
+- **Warning**: New version available
+- **Critical**: Within critical age window (default 12-30 days)
+- **Expired**: Beyond maximum age threshold (default 30 days)
+
+**Use cases:** Security patches, runner compliance, time-sensitive updates
+
+### Version-Based Policy
+
+Semantic versioning support windows (e.g., Kubernetes N-3):
+
+- **Warning**: Behind but within support window
+- **Critical**: Approaching end of support window
+- **Expired**: Beyond support window (e.g., 4+ minor versions behind)
+
+**Use cases:** Kubernetes, Node.js, libraries with semantic versioning
+
+## Features
+
+### Intelligent Caching
+
+Embedded release cache minimizes API calls:
+
+- 1 API call for current check (vs. 2 without cache)
+- Daily automated cache updates
+- Supports custom cache paths per repository
+- Graceful fallback if cache is stale
+
+### Output Formats
+
+Three output modes for different use cases:
+
+1. **Terminal**: Human-readable with colours and tables
+2. **JSON**: Machine-readable for automation and monitoring
+3. **CI**: GitHub Actions annotations and job summaries
+
+### Rate Limiting
+
+Use `GITHUB_TOKEN` environment variable to increase API rate limits:
+
+- Unauthenticated: 60 requests/hour
+- Authenticated: 5,000 requests/hour
 
 ```bash
-#!/bin/bash
-set -e
-
-VERSION=$(cat /opt/actions-runner/.runner | jq -r '.agentVersion')
-OUTPUT=$(github-release-version-checker -c "$VERSION" --json)
-STATUS=$(echo "$OUTPUT" | jq -r '.status')
-
-if [ "$STATUS" = "expired" ]; then
- echo " Runner version is expired! Please update immediately."
- exit 1
-elif [ "$STATUS" = "critical" ]; then
- echo " Runner version is critical. Update soon."
- exit 0
-else
- echo " Runner version is current."
-fi
+export GITHUB_TOKEN="ghp_xxxxxxxxxxxx"
+github-release-version-checker -c 2.328.0
 ```
 
-### In CI/CD (Other Systems)
+## Contributing
 
-For non-GitHub CI systems, use JSON output:
+Contributions are welcome! Please see the [Development Guide](docs/DEVELOPMENT.md) for details on:
+
+- Setting up your development environment
+- Building and testing
+- Code style guidelines (British English spelling)
+- Submitting pull requests
+
+**Quick start:**
 
 ```bash
-#!/bin/bash
-# Jenkins, GitLab CI, CircleCI, etc.
+# Clone the repository
+git clone https://github.com/nickromney-org/github-release-version-checker.git
+cd github-release-version-checker
 
-OUTPUT=$(github-release-version-checker -c "$VERSION" --json)
-IS_EXPIRED=$(echo "$OUTPUT" | jq -r '.is_expired')
-
-if [ "$IS_EXPIRED" = "true" ]; then
- echo "Runner version check FAILED"
- exit 1
-fi
-```
-
-### In Monitoring (Prometheus)
-
-If you need metrics export, you can parse JSON output:
-
-```bash
-#!/bin/bash
-# Export metrics for Prometheus node_exporter textfile collector
-
-OUTPUT=$(github-release-version-checker -c "$RUNNER_VERSION" --json)
-
-cat > /var/lib/node_exporter/textfile/runner.prom <<EOF
-# HELP runner_is_expired Whether the runner version is expired
-# TYPE runner_is_expired gauge
-runner_is_expired $(echo $OUTPUT | jq -r '.is_expired | if . then 1 else 0 end')
-
-# HELP runner_releases_behind Number of releases behind
-# TYPE runner_releases_behind gauge
-runner_releases_behind $(echo $OUTPUT | jq -r '.releases_behind')
-
-# HELP runner_days_since_update Days since a newer version was released
-# TYPE runner_days_since_update gauge
-runner_days_since_update $(echo $OUTPUT | jq -r '.days_since_update')
-EOF
-```
-
-## Project Structure
-
-```text
-.
-├── main.go # Entry point
-├── cmd/
-│ ├── root.go # CLI commands (Cobra)
-│ ├── bootstrap-releases/ # Cache bootstrap utility
-│ └── check-releases/ # Cache validation utility
-├── pkg/ # Public API (importable)
-│ ├── checker/ # Version analysis engine
-│ │ ├── checker.go # Core analysis logic
-│ │ ├── types.go # Analysis and Config types
-│ │ └── checker_test.go # Unit tests
-│ ├── client/ # GitHub API client
-│ │ ├── client.go # Client implementation
-│ │ └── client_test.go # Client tests
-│ ├── policy/ # Expiry policies
-│ │ ├── policy.go # Policy implementations
-│ │ └── policy_test.go # Policy tests
-│ └── types/ # Shared types
-│ └── release.go # Release type
-├── internal/ # Private implementation
-│ ├── version/ # Legacy wrapper
-│ ├── github/ # Legacy client wrapper
-│ ├── policy/ # Config adapter
-│ ├── config/ # Repository configs
-│ ├── data/ # Embedded cache loader
-│ └── cache/ # Cache management
-├── examples/ # Library usage examples
-│ ├── basic/ # Basic usage example
-│ ├── version-based-policy/ # Version policy example
-│ ├── custom-repository/ # Custom repo example
-│ └── json-output/ # JSON output example
-├── internal/
-│ ├── data/
-│ │ └── releases.json # Embedded release cache
-├── go.mod # Dependencies
-├── go.sum # Dependency checksums
-├── Makefile # Build automation
-├── Dockerfile # Container build
-└── README.md # This file
-```
-
-## Testing
-
-Run the comprehensive test suite:
-
-```bash
-# Run all tests
-make test
-
-# Run tests with coverage
-make test-coverage
-
-# Run specific test (using British spelling as per project convention)
-go test -v ./pkg/checker -run TestAnalyse_ExpiredVersion
-```
-
-Example test output:
-
-```text
-=== RUN TestAnalyse_ExpiredVersion
---- PASS: TestAnalyse_ExpiredVersion (0.00s)
-=== RUN TestAnalyse_CriticalVersion
---- PASS: TestAnalyse_CriticalVersion (0.00s)
-PASS
-coverage: 89.6% of statements
-ok github.com/nickromney-org/github-release-version-checker/pkg/checker 0.234s
-```
-
-## Why Go?
-
-This tool is written in Go for several compelling reasons:
-
-1. **Single Binary** - No runtime dependencies, ship one file
-1. **Fast Startup** - ~10ms vs Node's ~500ms vs Python's ~200ms
-1. **Cross-Compilation** - Build for any OS/arch from anywhere
-1. **Strong Typing** - Catch bugs at compile time
-1. **Excellent Standard Library** - HTTP, JSON, time handling built-in
-1. **Perfect for CLI Tools** - This is Go's sweet spot (kubectl, helm, gh)
-1. **Easy Distribution** - Just download and run
-1. **Low Memory** - ~3-5MB resident memory
-1. **Great Ecosystem** - Cobra, semver, go-github libraries
-
-### Performance Comparison
-
-| Implementation | Startup Time | Binary Size | Memory Usage |
-| ----------------- | ------------ | ----------- | ------------ |
-| **Go** | ~10ms | 8MB | 5MB |
-| Bash + jq | ~5ms | N/A | 2MB |
-| TypeScript (Node) | ~500ms | N/A | 40MB |
-| Python | ~200ms | N/A | 20MB |
-
-## Release Data Caching
-
-This tool embeds historical release data to minimize GitHub API calls:
-
-- **Embedded cache**: All releases from v2.159.0 to build time
-- **API calls**: Always fetches 5 most recent releases (1 API call)
-- **Validation**: Checks if embedded cache is current (within top 5)
-- **Fallback**: Full API query if cache is more than 5 releases behind
-- **Updates**: Automated daily checks trigger new tool builds
-
-**Result**: Reduces API calls from 2 per invocation to 1, improving speed and rate limit usage.
-
-### Cache Architecture
-
-1. **Bootstrap Process**: `scripts/update-releases.sh` fetches all releases from GitHub API
-1. **Embedded Data**: `internal/data/releases.json` is embedded in binary via `go:embed`
-1. **Runtime Logic**:
-
-- Load embedded releases (instant, no API call)
-- Fetch 5 most recent from API (1 API call)
-- If latest embedded is in top 5: merge datasets (optimal path)
-- If cache is stale: fall back to full API query (2 API calls total)
-
-### Maintaining the Cache
-
-The cache is automatically updated by GitHub Actions:
-
-- **Check**: `cmd/check-releases` validates embedded data currency
-- **Update**: Daily workflow runs at 6 AM UTC
-- **Commit**: Auto-commits new releases to trigger rebuild
-
-Manual update:
-
-```bash
-# Update releases.json with latest data
-./scripts/update-releases.sh
-
-# Rebuild binary with new embedded cache
-make build
-```
-
-## Development
-
-This project uses British English spelling throughout:
-
-- `Analyse` (not Analyze)
-- `colour` (not color)
-
-Linting enforces British spelling via `golangci-lint` with UK locale.
-
-### Commands
-
-```bash
 # Build
 make build
 
 # Run tests
 make test
 
-# Format code
+# Format and lint
 make fmt
-
-# Run linter
 make lint
-
-# Run with local build
-./bin/github-release-version-checker -c 2.327.1
 ```
-
-## Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-1. Create a feature branch (`git checkout -b feature/amazing-feature`)
-1. Write tests for your changes
-1. Ensure tests pass (`make test`)
-1. Format code (`make fmt`)
-1. Run linter (`make lint`)
-1. Commit your changes (`git commit -m 'Add amazing feature'`)
-1. Push to the branch (`git push origin feature/amazing-feature`)
-1. Open a Pull Request
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## Related Projects
+## Resources
 
-- [GitHub Actions Runner](https://github.com/actions/runner)
-- [GitHub CLI](https://github.com/cli/cli) - Another excellent Go CLI tool
-- [Semantic Versioning](https://semver.org/)
+- **Repository**: <https://github.com/nickromney-org/github-release-version-checker>
+- **Issues**: <https://github.com/nickromney-org/github-release-version-checker/issues>
+- **API Documentation**: <https://pkg.go.dev/github.com/nickromney-org/github-release-version-checker>
 
-## Acknowledgments
+## Acknowledgements
 
 Built with:
 
-- [Cobra](https://github.com/spf13/cobra) - CLI framework
-- [semver](https://github.com/Masterminds/semver) - Semantic versioning
-- [go-github](https://github.com/google/go-github) - GitHub API client
-- [color](https://github.com/fatih/color) - Terminal colors
-
----
-
-Made with care - ensuring your runners stay compliant!
+- [spf13/cobra](https://github.com/spf13/cobra) - CLI framework
+- [Masterminds/semver](https://github.com/Masterminds/semver) - Semantic versioning
+- [google/go-github](https://github.com/google/go-github) - GitHub API client
+- [fatih/color](https://github.com/fatih/color) - Terminal colours
